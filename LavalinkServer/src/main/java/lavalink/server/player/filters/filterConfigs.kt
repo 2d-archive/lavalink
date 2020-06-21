@@ -3,7 +3,6 @@ package lavalink.server.player.filters
 import com.github.natanbc.lavadsp.karaoke.KaraokePcmAudioFilter
 import com.github.natanbc.lavadsp.timescale.TimescalePcmAudioFilter
 import com.github.natanbc.lavadsp.tremolo.TremoloPcmAudioFilter
-import com.github.natanbc.lavadsp.vibrato.VibratoPcmAudioFilter
 import com.github.natanbc.lavadsp.volume.VolumePcmAudioFilter
 import com.sedmelluq.discord.lavaplayer.filter.FloatPcmAudioFilter
 import com.sedmelluq.discord.lavaplayer.filter.equalizer.Equalizer
@@ -72,19 +71,6 @@ class TremoloConfig(
 ) : FilterConfig() {
     override fun build(format: AudioDataFormat, output: FloatPcmAudioFilter): FloatPcmAudioFilter {
         return TremoloPcmAudioFilter(output, format.channelCount, format.sampleRate)
-                .setFrequency(frequency)
-                .setDepth(depth)
-    }
-
-    override val isEnabled: Boolean get() = depth != 0.0f
-}
-
-class VibratoConfig(
-        private val frequency: Float = 2.0f,
-        private val depth: Float = 0.5f
-) : FilterConfig() {
-    override fun build(format: AudioDataFormat, output: FloatPcmAudioFilter): FloatPcmAudioFilter {
-        return VibratoPcmAudioFilter(output, format.channelCount, format.sampleRate)
                 .setFrequency(frequency)
                 .setDepth(depth)
     }

@@ -17,32 +17,33 @@ class FilterChain : PcmFilterFactory {
     private val karaoke: KaraokeConfig? = null
     private val timescale: TimescaleConfig? = null
     private val tremolo: TremoloConfig? = null
-    private val vibrato: VibratoConfig? = null
 
     private fun buildList() = listOfNotNull(
             volume?.let { VolumeConfig(it) },
             equalizer?.let { EqualizerConfig(it) },
             karaoke,
             timescale,
-            tremolo,
-            vibrato
+            tremolo
     )
 
     val isEnabled get() = buildList().any { it.isEnabled }
 
-    override fun buildChain(track: AudioTrack?, format: AudioDataFormat, output: UniversalPcmAudioFilter): MutableList<AudioFilter> {
-        val builder = FilterChainBuilder()
-        builder.addFirst(output)
+    override fun buildChain(
+        track: AudioTrack?,
+        format: AudioDataFormat,
+        output: UniversalPcmAudioFilter
+    ): MutableList<AudioFilter> {
+        val enabledFilters = buildList().takeIf { it.isNotEmpty() }
+            ?: return mutableListOf()
 
-        for (config in buildList()) {
-            if (config.isEnabled) {
-                val filter = config.build(format, builder.makeFirstFloat(format.channelCount))
-                builder.addFirst(filter)
-            }
+        val pipeline = mutableListOf<FloatPcmAudioFilter>()
+
+        for (filter in enabledFilters) {
+            val outputTo = pipeline.lastOrNull() ?: output
+            pipeline.add(filter.build(format, outputTo))
         }
 
-        val list = builder.build(null, format.channelCount).filters
-        return list.subList(1, list.size)
+        return pipeline.reversed().toMutableList()
     }
 
 }

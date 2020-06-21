@@ -6,6 +6,7 @@ import com.sedmelluq.discord.lavaplayer.source.AudioSourceManagers
 import com.sedmelluq.discord.lavaplayer.tools.FriendlyException
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack
+import lavalink.client.LavalinkUtil
 import lavalink.client.io.jda.JdaLavalink
 import net.dv8tion.jda.api.JDA
 import net.dv8tion.jda.api.JDABuilder
@@ -17,9 +18,10 @@ import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent
 import net.dv8tion.jda.api.hooks.ListenerAdapter
 import net.dv8tion.jda.api.requests.GatewayIntent
 import net.dv8tion.jda.api.utils.cache.CacheFlag.*
+import org.json.JSONArray
+import org.json.JSONObject
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.lang.IllegalArgumentException
 import java.net.URI
 
 private val log: Logger = LoggerFactory.getLogger("Testbot")
@@ -30,13 +32,9 @@ lateinit var host: String
 lateinit var password: String
 
 fun main(args: Array<String>) {
-    if (args.size < 3) {
-        throw IllegalArgumentException("Expected 3 arguments. Please refer to the readme.")
-    }
-
-    val token = args[0]
-    host = args[1]
-    password = args[2]
+    val token = "no"
+    host = "ws://localhost:2333"
+    password = "youshallnotpass"
     AudioSourceManagers.registerRemoteSources(playerManager)
 
     jda = JDABuilder.createDefault(token,
@@ -63,7 +61,7 @@ object Listener : ListenerAdapter() {
         if (member.user.isBot) return
 
         try {
-            play(event.channel, member, event.message.contentRaw)
+                play(event.channel, member, event.message.contentRaw)
         } catch (e: Exception) {
             event.channel.sendMessage(e.message ?: e.toString()).queue()
         }
