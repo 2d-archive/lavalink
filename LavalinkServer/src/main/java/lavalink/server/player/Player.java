@@ -22,8 +22,6 @@
 
 package lavalink.server.player;
 
-import com.sedmelluq.discord.lavaplayer.filter.equalizer.Equalizer;
-import com.sedmelluq.discord.lavaplayer.filter.equalizer.EqualizerFactory;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayer;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.player.event.AudioEventAdapter;
@@ -33,6 +31,7 @@ import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame;
 import io.netty.buffer.ByteBuf;
 import lavalink.server.io.SocketContext;
 import lavalink.server.io.SocketServer;
+import lavalink.server.player.filters.FilterChain;
 import moe.kyokobot.koe.VoiceConnection;
 import moe.kyokobot.koe.media.OpusAudioFrameProvider;
 import org.json.JSONObject;
@@ -53,8 +52,7 @@ public class Player extends AudioEventAdapter {
     private final AudioLossCounter audioLossCounter = new AudioLossCounter();
     private AudioFrame lastFrame = null;
     private ScheduledFuture<?> myFuture = null;
-    private final EqualizerFactory equalizerFactory = new EqualizerFactory();
-    private boolean isEqualizerApplied = false;
+    private FilterChain filters;
 
     public Player(SocketContext socketContext, String guildId, AudioPlayerManager audioPlayerManager) {
         this.socketContext = socketContext;
@@ -94,33 +92,6 @@ public class Player extends AudioEventAdapter {
         player.setVolume(volume);
     }
 
-    public void setBandGain(int band, float gain) {
-        log.debug("Setting band {}'s gain to {}", band, gain);
-        equalizerFactory.setGain(band, gain);
-
-        if (gain == 0.0f) {
-            if (!isEqualizerApplied) {
-                return;
-            }
-
-            boolean shouldDisable = true;
-
-            for (int i = 0; i < Equalizer.BAND_COUNT; i++) {
-                if (equalizerFactory.getGain(i) != 0.0f) {
-                    shouldDisable = false;
-                }
-            }
-
-            if (shouldDisable) {
-                this.player.setFilterFactory(null);
-                this.isEqualizerApplied = false;
-            }
-        } else if (!this.isEqualizerApplied) {
-            this.player.setFilterFactory(equalizerFactory);
-            this.isEqualizerApplied = true;
-        }
-    }
-
     public JSONObject getState() {
         JSONObject json = new JSONObject();
 
@@ -129,6 +100,16 @@ public class Player extends AudioEventAdapter {
         json.put("time", System.currentTimeMillis());
 
         return json;
+    }
+
+    public void setFilters(FilterChain filters) {
+        this.filters = filters;
+
+        if (filters.isEnabled()) {
+            player.setFilterFactory(filters);
+        } else {
+            player.setFilterFactory(null);
+        }
     }
 
     SocketContext getSocket() {
@@ -170,6 +151,11 @@ public class Player extends AudioEventAdapter {
 
     public void provideTo(VoiceConnection connection) {
         connection.setAudioSender(new Provider(connection));
+    }
+
+    @Nullable
+    public FilterChain getFilters() {
+        return filters;
     }
 
     private class Provider extends OpusAudioFrameProvider {

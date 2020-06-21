@@ -31,11 +31,12 @@ public class SentryConfiguration {
         boolean warnDeprecatedDsnConfig = false;
         if (dsn == null || dsn.isEmpty()) {
             //try deprecated config location
+            //noinspection deprecation
             dsn = serverConfig.getSentryDsn();
             warnDeprecatedDsnConfig = true;
         }
 
-        if (dsn != null && !dsn.isEmpty()) {
+        if (!dsn.isEmpty()) {
             turnOn(dsn, sentryConfig.getTags());
             if (warnDeprecatedDsnConfig) {
                 log.warn("Please update the location of the sentry dsn in lavalinks config file / your environment "
@@ -58,7 +59,6 @@ public class SentryConfiguration {
         // set the git commit hash this was build on as the release
         Properties gitProps = new Properties();
         try {
-            //noinspection ConstantConditions
             gitProps.load(Launcher.class.getClassLoader().getResourceAsStream("git.properties"));
         } catch (NullPointerException | IOException e) {
             log.error("Failed to load git repo information", e);
