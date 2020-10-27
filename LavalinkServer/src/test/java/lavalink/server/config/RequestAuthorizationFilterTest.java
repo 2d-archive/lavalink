@@ -24,33 +24,33 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles({"test"})
 public class RequestAuthorizationFilterTest {
 
-    @Autowired
-    protected MockMvc mvc;
+  @Autowired
+  protected MockMvc mvc;
 
-    @Autowired
-    protected ServerConfig serverConfig;
+  @Autowired
+  protected ServerConfig serverConfig;
 
-    @Autowired
-    protected AppInfo appInfo;
+  @Autowired
+  protected AppInfo appInfo;
 
-    @Test
-    public void unauthenticatedRequest_Fail() throws Exception {
-        this.mvc.perform(get("/loadtracks"))
-                .andExpect(status().isUnauthorized());
-    }
+  @Test
+  public void unauthenticatedRequest_Fail() throws Exception {
+    this.mvc.perform(get("/loadtracks"))
+      .andExpect(status().isUnauthorized());
+  }
 
-    @Test
-    public void wrongAuthenticatedRequest_Fail() throws Exception {
-        this.mvc.perform(get("/loadtracks")
-                .header("Authorization", serverConfig.getPassword() + "foo"))
-                .andExpect(status().isForbidden());
-    }
+  @Test
+  public void wrongAuthenticatedRequest_Fail() throws Exception {
+    this.mvc.perform(get("/loadtracks")
+      .header("Authorization", serverConfig.getPassword() + "foo"))
+      .andExpect(status().isForbidden());
+  }
 
-    @Test
-    public void authenticatedRequest_Success() throws Exception {
-        this.mvc.perform(get("/version")
-                .header("Authorization", serverConfig.getPassword()))
-                .andExpect(status().isOk())
-                .andExpect(content().string(appInfo.getVersionBuild()));
-    }
+  @Test
+  public void authenticatedRequest_Success() throws Exception {
+    this.mvc.perform(get("/version")
+      .header("Authorization", serverConfig.getPassword()))
+      .andExpect(status().isOk())
+      .andExpect(content().string(appInfo.getVersionBuild()));
+  }
 }
