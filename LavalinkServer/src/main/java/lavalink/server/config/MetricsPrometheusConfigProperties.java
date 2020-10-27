@@ -10,22 +10,22 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties("metrics.prometheus")
 public class MetricsPrometheusConfigProperties {
 
-    private boolean enabled = false;
-    private String endpoint = "";
+  private boolean enabled = false;
+  private String endpoint = "";
 
-    public boolean isEnabled() {
-        return enabled;
-    }
+  public boolean isEnabled() {
+    return enabled;
+  }
 
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
+  public void setEnabled(boolean enabled) {
+    this.enabled = enabled;
+  }
 
-    public String getEndpoint() {
-        return endpoint;
-    }
+  public String getEndpoint() {
+    return endpoint;
+  }
 
-    public void setEndpoint(String endpoint) {
-        this.endpoint = endpoint;
-    }
+  public void setEndpoint(String endpoint) {
+    this.endpoint = endpoint;
+  }
 }

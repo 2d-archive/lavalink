@@ -13,10 +13,10 @@ import java.io.IOException;
 @Component
 public class ResponseHeaderFilter extends OncePerRequestFilter {
 
-    @Override
-    protected void doFilterInternal(@NotNull HttpServletRequest request, @NotNull HttpServletResponse response,
-                                    @NotNull FilterChain filterChain) throws IOException, ServletException {
-        response.addHeader("Lavalink-Api-Version", "3");
-        filterChain.doFilter(request, response);
-    }
+  @Override
+  protected void doFilterInternal(@NotNull HttpServletRequest request, @NotNull HttpServletResponse response,
+                                  @NotNull FilterChain filterChain) throws IOException, ServletException {
+    response.addHeader("Lavalink-Api-Version", "3");
+    filterChain.doFilter(request, response);
+  }
 }

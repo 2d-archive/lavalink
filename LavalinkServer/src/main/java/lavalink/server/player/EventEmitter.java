@@ -38,84 +38,84 @@ import java.io.IOException;
 
 public class EventEmitter extends AudioEventAdapter {
 
-    private static final Logger log = LoggerFactory.getLogger(EventEmitter.class);
-    private final AudioPlayerManager audioPlayerManager;
-    private final Player linkPlayer;
+  private static final Logger log = LoggerFactory.getLogger(EventEmitter.class);
+  private final AudioPlayerManager audioPlayerManager;
+  private final Player linkPlayer;
 
-    EventEmitter(AudioPlayerManager audioPlayerManager, Player linkPlayer) {
-        this.audioPlayerManager = audioPlayerManager;
-        this.linkPlayer = linkPlayer;
+  EventEmitter(AudioPlayerManager audioPlayerManager, Player linkPlayer) {
+    this.audioPlayerManager = audioPlayerManager;
+    this.linkPlayer = linkPlayer;
+  }
+
+  @Override
+  public void onTrackStart(AudioPlayer player, AudioTrack track) {
+    JSONObject out = new JSONObject();
+    out.put("op", "event");
+    out.put("type", "TrackStartEvent");
+    out.put("guildId", linkPlayer.getGuildId());
+
+    try {
+      out.put("track", Util.toMessage(audioPlayerManager, track));
+    } catch (IOException e) {
+      out.put("track", JSONObject.NULL);
     }
 
-    @Override
-    public void onTrackStart(AudioPlayer player, AudioTrack track) {
-        JSONObject out = new JSONObject();
-        out.put("op", "event");
-        out.put("type", "TrackStartEvent");
-        out.put("guildId", linkPlayer.getGuildId());
+    linkPlayer.getSocket().send(out);
+  }
 
-        try {
-            out.put("track", Util.toMessage(audioPlayerManager, track));
-        } catch (IOException e) {
-            out.put("track", JSONObject.NULL);
-        }
-
-        linkPlayer.getSocket().send(out);
+  @Override
+  public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
+    JSONObject out = new JSONObject();
+    out.put("op", "event");
+    out.put("type", "TrackEndEvent");
+    out.put("guildId", linkPlayer.getGuildId());
+    try {
+      out.put("track", Util.toMessage(audioPlayerManager, track));
+    } catch (IOException e) {
+      out.put("track", JSONObject.NULL);
     }
 
-    @Override
-    public void onTrackEnd(AudioPlayer player, AudioTrack track, AudioTrackEndReason endReason) {
-        JSONObject out = new JSONObject();
-        out.put("op", "event");
-        out.put("type", "TrackEndEvent");
-        out.put("guildId", linkPlayer.getGuildId());
-        try {
-            out.put("track", Util.toMessage(audioPlayerManager, track));
-        } catch (IOException e) {
-            out.put("track", JSONObject.NULL);
-        }
+    out.put("reason", endReason.toString());
 
-        out.put("reason", endReason.toString());
+    linkPlayer.getSocket().send(out);
+  }
 
-        linkPlayer.getSocket().send(out);
+  // These exceptions are already logged by Lavaplayer
+  @Override
+  public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception) {
+    JSONObject out = new JSONObject();
+    out.put("op", "event");
+    out.put("type", "TrackExceptionEvent");
+    out.put("guildId", linkPlayer.getGuildId());
+    try {
+      out.put("track", Util.toMessage(audioPlayerManager, track));
+    } catch (IOException e) {
+      out.put("track", JSONObject.NULL);
     }
 
-    // These exceptions are already logged by Lavaplayer
-    @Override
-    public void onTrackException(AudioPlayer player, AudioTrack track, FriendlyException exception) {
-        JSONObject out = new JSONObject();
-        out.put("op", "event");
-        out.put("type", "TrackExceptionEvent");
-        out.put("guildId", linkPlayer.getGuildId());
-        try {
-            out.put("track", Util.toMessage(audioPlayerManager, track));
-        } catch (IOException e) {
-            out.put("track", JSONObject.NULL);
-        }
+    out.put("error", exception.getMessage());
 
-        out.put("error", exception.getMessage());
+    linkPlayer.getSocket().send(out);
+  }
 
-        linkPlayer.getSocket().send(out);
+  @Override
+  public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs) {
+    log.warn(track.getInfo().title + " got stuck! Threshold surpassed: " + thresholdMs);
+
+    JSONObject out = new JSONObject();
+    out.put("op", "event");
+    out.put("type", "TrackStuckEvent");
+    out.put("guildId", linkPlayer.getGuildId());
+    try {
+      out.put("track", Util.toMessage(audioPlayerManager, track));
+    } catch (IOException e) {
+      out.put("track", JSONObject.NULL);
     }
 
-    @Override
-    public void onTrackStuck(AudioPlayer player, AudioTrack track, long thresholdMs) {
-        log.warn(track.getInfo().title + " got stuck! Threshold surpassed: " + thresholdMs);
+    out.put("thresholdMs", thresholdMs);
 
-        JSONObject out = new JSONObject();
-        out.put("op", "event");
-        out.put("type", "TrackStuckEvent");
-        out.put("guildId", linkPlayer.getGuildId());
-        try {
-            out.put("track", Util.toMessage(audioPlayerManager, track));
-        } catch (IOException e) {
-            out.put("track", JSONObject.NULL);
-        }
-
-        out.put("thresholdMs", thresholdMs);
-
-        linkPlayer.getSocket().send(out);
-        SocketServer.Companion.sendPlayerUpdate(linkPlayer.getSocket(), linkPlayer);
-    }
+    linkPlayer.getSocket().send(out);
+    SocketServer.Companion.sendPlayerUpdate(linkPlayer.getSocket(), linkPlayer);
+  }
 
 }

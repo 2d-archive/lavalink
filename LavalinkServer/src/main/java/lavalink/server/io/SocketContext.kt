@@ -116,7 +116,7 @@ class SocketContext internal constructor(
   fun pause() {
     sessionPaused = true
     sessionTimeoutFuture = executor.schedule<Unit>({
-        socketServer.onSessionResumeTimeout(this)
+      socketServer.onSessionResumeTimeout(this)
     }, resumeTimeout, TimeUnit.SECONDS)
   }
 
@@ -135,15 +135,15 @@ class SocketContext internal constructor(
 
     val undertowSession = (session as StandardWebSocketSession).nativeSession as UndertowSession
     WebSockets.sendText(payload, undertowSession.webSocketChannel,
-        object : WebSocketCallback<Void> {
-            override fun complete(channel: WebSocketChannel, context: Void?) {
-                log.trace("Sent {}", payload)
-            }
+      object : WebSocketCallback<Void> {
+        override fun complete(channel: WebSocketChannel, context: Void?) {
+          log.trace("Sent {}", payload)
+        }
 
-            override fun onError(channel: WebSocketChannel, context: Void?, throwable: Throwable) {
-                log.error("Error", throwable)
-            }
-        })
+        override fun onError(channel: WebSocketChannel, context: Void?, throwable: Throwable) {
+          log.error("Error", throwable)
+        }
+      })
   }
 
   /**

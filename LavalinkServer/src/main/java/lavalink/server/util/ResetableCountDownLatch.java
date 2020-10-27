@@ -31,30 +31,30 @@ import java.util.concurrent.TimeUnit;
 @SuppressWarnings("unused")
 public class ResetableCountDownLatch {
 
-    private static final Logger log = LoggerFactory.getLogger(ResetableCountDownLatch.class);
+  private static final Logger log = LoggerFactory.getLogger(ResetableCountDownLatch.class);
 
-    private final int startCount;
-    private CountDownLatch latch;
+  private final int startCount;
+  private CountDownLatch latch;
 
-    public ResetableCountDownLatch(int startCount) {
-        this.startCount = startCount;
-        latch = new CountDownLatch(startCount);
-    }
+  public ResetableCountDownLatch(int startCount) {
+    this.startCount = startCount;
+    latch = new CountDownLatch(startCount);
+  }
 
-    public void countDown() {
-        latch.countDown();
-    }
+  public void countDown() {
+    latch.countDown();
+  }
 
-    public void await() throws InterruptedException {
-        latch.await();
-    }
+  public void await() throws InterruptedException {
+    latch.await();
+  }
 
-    public void await(long timeout, TimeUnit unit) throws InterruptedException {
-        latch.await(timeout, unit);
-    }
+  public void await(long timeout, TimeUnit unit) throws InterruptedException {
+    latch.await(timeout, unit);
+  }
 
-    public void reset() {
-        while (latch.getCount() != 0) latch.countDown();
-        latch = new CountDownLatch(startCount);
-    }
+  public void reset() {
+    while (latch.getCount() != 0) latch.countDown();
+    latch = new CountDownLatch(startCount);
+  }
 }

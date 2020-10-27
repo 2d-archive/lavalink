@@ -35,115 +35,111 @@ import oshi.software.os.OperatingSystem;
 
 public class StatsTask implements Runnable {
 
-    private static final Logger log = LoggerFactory.getLogger(StatsTask.class);
+  private static final Logger log = LoggerFactory.getLogger(StatsTask.class);
+  private final SocketServer socketServer;
+  private final SystemInfo si = new SystemInfo();
+  private final SocketContext context;
+  private double uptime = 0;
+  private double cpuTime = 0;
 
-    private SocketContext context;
-    private final SocketServer socketServer;
+  StatsTask(SocketContext context, SocketServer socketServer) {
+    this.context = context;
+    this.socketServer = socketServer;
+  }
 
-    private final SystemInfo si = new SystemInfo();
+  @Override
+  public void run() {
+    try {
+      sendStats();
+    } catch (Exception e) {
+      log.error("Exception while sending stats", e);
+    }
+  }
 
-    StatsTask(SocketContext context, SocketServer socketServer) {
-        this.context = context;
-        this.socketServer = socketServer;
+  private void sendStats() {
+    if (context.getSessionPaused()) return;
+
+    JSONObject out = new JSONObject();
+
+    final int[] playersTotal = {0};
+    final int[] playersPlaying = {0};
+
+    socketServer.getContexts().forEach(socketContext -> {
+      playersTotal[0] += socketContext.getPlayers().size();
+      playersPlaying[0] += socketContext.getPlayingPlayers().size();
+    });
+
+    out.put("op", "stats");
+    out.put("players", playersTotal[0]);
+    out.put("playingPlayers", playersPlaying[0]);
+    out.put("uptime", System.currentTimeMillis() - Launcher.INSTANCE.getStartTime());
+
+    // In bytes
+    JSONObject mem = new JSONObject();
+    mem.put("free", Runtime.getRuntime().freeMemory());
+    mem.put("used", Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory());
+    mem.put("allocated", Runtime.getRuntime().totalMemory());
+    mem.put("reservable", Runtime.getRuntime().maxMemory());
+    out.put("memory", mem);
+
+    HardwareAbstractionLayer hal = si.getHardware();
+
+
+    JSONObject cpu = new JSONObject();
+    cpu.put("cores", Runtime.getRuntime().availableProcessors());
+    cpu.put("systemLoad", hal.getProcessor().getSystemCpuLoad());
+    double load = getProcessRecentCpuUsage();
+    if (!Double.isFinite(load)) load = 0;
+    cpu.put("lavalinkLoad", load);
+
+    out.put("cpu", cpu);
+
+    int totalSent = 0;
+    int totalNulled = 0;
+    int players = 0;
+
+    for (Player player : context.getPlayingPlayers()) {
+      AudioLossCounter counter = player.getAudioLossCounter();
+      if (!counter.isDataUsable()) continue;
+
+      players++;
+      totalSent += counter.getLastMinuteSuccess();
+      totalNulled += counter.getLastMinuteLoss();
     }
 
-    @Override
-    public void run() {
-        try {
-            sendStats();
-        } catch (Exception e) {
-            log.error("Exception while sending stats", e);
-        }
+    int totalDeficit = players * AudioLossCounter.EXPECTED_PACKET_COUNT_PER_MIN
+      - (totalSent + totalNulled);
+
+    // We can't divide by 0
+    if (players != 0) {
+      JSONObject frames = new JSONObject();
+      frames.put("sent", totalSent / players);
+      frames.put("nulled", totalNulled / players);
+      frames.put("deficit", totalDeficit / players);
+      out.put("frameStats", frames);
     }
 
-    private void sendStats() {
-        if (context.getSessionPaused()) return;
+    context.send(out);
+  }
 
-        JSONObject out = new JSONObject();
+  private double getProcessRecentCpuUsage() {
+    double output;
+    HardwareAbstractionLayer hal = si.getHardware();
+    OperatingSystem os = si.getOperatingSystem();
+    OSProcess p = os.getProcess(os.getProcessId());
 
-        final int[] playersTotal = {0};
-        final int[] playersPlaying = {0};
-
-        socketServer.getContexts().forEach(socketContext -> {
-            playersTotal[0] += socketContext.getPlayers().size();
-            playersPlaying[0] += socketContext.getPlayingPlayers().size();
-        });
-
-        out.put("op", "stats");
-        out.put("players", playersTotal[0]);
-        out.put("playingPlayers", playersPlaying[0]);
-        out.put("uptime", System.currentTimeMillis() - Launcher.INSTANCE.getStartTime());
-
-        // In bytes
-        JSONObject mem = new JSONObject();
-        mem.put("free", Runtime.getRuntime().freeMemory());
-        mem.put("used", Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory());
-        mem.put("allocated", Runtime.getRuntime().totalMemory());
-        mem.put("reservable", Runtime.getRuntime().maxMemory());
-        out.put("memory", mem);
-
-        HardwareAbstractionLayer hal = si.getHardware();
-
-
-
-        JSONObject cpu = new JSONObject();
-        cpu.put("cores", Runtime.getRuntime().availableProcessors());
-        cpu.put("systemLoad", hal.getProcessor().getSystemCpuLoad());
-        double load = getProcessRecentCpuUsage();
-        if (!Double.isFinite(load)) load = 0;
-        cpu.put("lavalinkLoad", load);
-
-        out.put("cpu", cpu);
-
-        int totalSent = 0;
-        int totalNulled = 0;
-        int players = 0;
-
-        for (Player player : context.getPlayingPlayers()) {
-            AudioLossCounter counter = player.getAudioLossCounter();
-            if (!counter.isDataUsable()) continue;
-
-            players++;
-            totalSent += counter.getLastMinuteSuccess();
-            totalNulled += counter.getLastMinuteLoss();
-        }
-
-        int totalDeficit = players * AudioLossCounter.EXPECTED_PACKET_COUNT_PER_MIN
-                - (totalSent + totalNulled);
-
-        // We can't divide by 0
-        if (players != 0) {
-            JSONObject frames = new JSONObject();
-            frames.put("sent", totalSent / players);
-            frames.put("nulled", totalNulled / players);
-            frames.put("deficit", totalDeficit / players);
-            out.put("frameStats", frames);
-        }
-
-        context.send(out);
+    if (cpuTime != 0) {
+      double uptimeDiff = p.getUpTime() - uptime;
+      double cpuDiff = (p.getKernelTime() + p.getUserTime()) - cpuTime;
+      output = cpuDiff / uptimeDiff;
+    } else {
+      output = ((double) (p.getKernelTime() + p.getUserTime())) / (double) p.getUserTime();
     }
 
-    private double uptime = 0;
-    private double cpuTime = 0;
-
-    private double getProcessRecentCpuUsage() {
-        double output;
-        HardwareAbstractionLayer hal = si.getHardware();
-        OperatingSystem os = si.getOperatingSystem();
-        OSProcess p = os.getProcess(os.getProcessId());
-
-        if (cpuTime != 0) {
-            double uptimeDiff = p.getUpTime() - uptime;
-            double cpuDiff = (p.getKernelTime() + p.getUserTime()) - cpuTime;
-            output = cpuDiff / uptimeDiff;
-        } else {
-            output = ((double) (p.getKernelTime() + p.getUserTime())) / (double) p.getUserTime();
-        }
-
-        // Record for next invocation
-        uptime = p.getUpTime();
-        cpuTime = p.getKernelTime() + p.getUserTime();
-        return output / hal.getProcessor().getLogicalProcessorCount();
-    }
+    // Record for next invocation
+    uptime = p.getUpTime();
+    cpuTime = p.getKernelTime() + p.getUserTime();
+    return output / hal.getProcessor().getLogicalProcessorCount();
+  }
 
 }

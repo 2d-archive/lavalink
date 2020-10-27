@@ -9,14 +9,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class InfoRestHandler {
 
-    private final AppInfo appInfo;
+  private final AppInfo appInfo;
 
-    public InfoRestHandler(AppInfo appInfo) {
-        this.appInfo = appInfo;
-    }
+  public InfoRestHandler(AppInfo appInfo) {
+    this.appInfo = appInfo;
+  }
 
-    @GetMapping("/version")
-    public String version() {
-        return appInfo.getVersionBuild();
-    }
+  @GetMapping("/version")
+  public String version() {
+    return appInfo.getVersionBuild();
+  }
 }
