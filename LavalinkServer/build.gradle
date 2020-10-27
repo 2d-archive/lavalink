@@ -43,6 +43,9 @@ dependencies {
     }
     compile group: 'moe.kyokobot.koe', name: 'ext-udpqueue', version: koeVersion
 
+    // Transport
+    compile "io.netty:netty-transport-native-epoll:$nettyEpollVersion:linux-x86_64"
+
     // Audio Player
     compile group: 'com.sedmelluq', name: 'lavaplayer', version: lavaplayerVersion
     compile group: 'com.sedmelluq', name: 'lavaplayer-ext-youtube-rotator', version: lavaplayerIpRotatorVersion
