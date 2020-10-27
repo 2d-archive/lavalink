@@ -22,6 +22,7 @@
 
 package lavalink.server.io
 
+import com.github.natanbc.lavadsp.natives.TimescaleNativeLibLoader
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
 import lavalink.server.config.ServerConfig
 import lavalink.server.player.Player
@@ -39,138 +40,145 @@ import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class SocketServer(
-        private val serverConfig: ServerConfig,
-        private val audioPlayerManager: AudioPlayerManager,
-        koeOptions: KoeOptions
+  private val serverConfig: ServerConfig,
+  private val audioPlayerManager: AudioPlayerManager,
+  koeOptions: KoeOptions
 ) : TextWebSocketHandler() {
 
-    // userId <-> shardCount
-    private val shardCounts = ConcurrentHashMap<String, Int>()
-    val contextMap = HashMap<String, SocketContext>()
-    @Suppress("LeakingThis")
-    private val handlers = WebSocketHandlers(contextMap)
-    private val resumableSessions = mutableMapOf<String, SocketContext>()
-    private val koe = Koe.koe(koeOptions)
+  // userId <-> shardCount
+  private val shardCounts = ConcurrentHashMap<String, Int>()
+  val contextMap = HashMap<String, SocketContext>()
 
-    companion object {
-        private val log = LoggerFactory.getLogger(SocketServer::class.java)
+  @Suppress("LeakingThis")
+  private val handlers = WebSocketHandlers(contextMap)
+  private val resumableSessions = mutableMapOf<String, SocketContext>()
+  private val koe = Koe.koe(koeOptions)
 
-        fun sendPlayerUpdate(socketContext: SocketContext, player: Player) {
-            val json = JSONObject()
-            json.put("op", "playerUpdate")
-            json.put("guildId", player.guildId)
-            json.put("state", player.state)
+  init {
+    TimescaleNativeLibLoader.loadTimescaleLibrary()
+    log.info("Loaded Timescale")
+  }
 
-            socketContext.send(json)
-        }
+  companion object {
+    private val log = LoggerFactory.getLogger(SocketServer::class.java)
+
+    fun sendPlayerUpdate(socketContext: SocketContext, player: Player) {
+      val json = JSONObject()
+      json.put("op", "playerUpdate")
+      json.put("guildId", player.guildId)
+      json.put("state", player.state)
+
+      socketContext.send(json)
+    }
+  }
+
+  val contexts: Collection<SocketContext>
+    get() = contextMap.values
+
+  override fun afterConnectionEstablished(session: WebSocketSession) {
+    val shardCount = Integer.parseInt(session.handshakeHeaders.getFirst("Num-Shards")!!)
+    val userId = session.handshakeHeaders.getFirst("User-Id")!!
+    val resumeKey = session.handshakeHeaders.getFirst("Resume-Key")
+
+    shardCounts[userId] = shardCount
+
+    var resumable: SocketContext? = null
+    if (resumeKey != null) resumable = resumableSessions.remove(resumeKey)
+
+    if (resumable != null) {
+      contextMap[session.id] = resumable
+      resumable.resume(session)
+      log.info("Resumed session with key $resumeKey")
+      return
     }
 
-    val contexts: Collection<SocketContext>
-        get() = contextMap.values
+    shardCounts[userId] = shardCount
 
-    override fun afterConnectionEstablished(session: WebSocketSession) {
-        val shardCount = Integer.parseInt(session.handshakeHeaders.getFirst("Num-Shards")!!)
-        val userId = session.handshakeHeaders.getFirst("User-Id")!!
-        val resumeKey = session.handshakeHeaders.getFirst("Resume-Key")
+    contextMap[session.id] = SocketContext(
+      audioPlayerManager,
+      serverConfig,
+      session,
+      this,
+      userId,
+      koe.newClient(userId.toLong())
+    )
+    log.info("Connection successfully established from " + session.remoteAddress!!)
+  }
 
-        shardCounts[userId] = shardCount
+  override fun afterConnectionClosed(session: WebSocketSession?, status: CloseStatus?) {
+    val context = contextMap.remove(session!!.id) ?: return
+    if (context.resumeKey != null) {
+      resumableSessions.remove(context.resumeKey!!)?.let { removed ->
+        log.warn("Shutdown resumable session with key ${removed.resumeKey} because it has the same key as a " +
+          "newly disconnected resumable session.")
+        removed.shutdown()
+      }
 
-        var resumable: SocketContext? = null
-        if (resumeKey != null) resumable = resumableSessions.remove(resumeKey)
-
-        if (resumable != null) {
-            contextMap[session.id] = resumable
-            resumable.resume(session)
-            log.info("Resumed session with key $resumeKey")
-            return
-        }
-
-        shardCounts[userId] = shardCount
-
-        contextMap[session.id] = SocketContext(
-                audioPlayerManager,
-                session,
-                this,
-                userId,
-                koe.newClient(userId.toLong())
-        )
-        log.info("Connection successfully established from " + session.remoteAddress!!)
+      resumableSessions[context.resumeKey!!] = context
+      context.pause()
+      log.info("Connection closed from {} with status {} -- " +
+        "Session can be resumed within the next {} seconds with key {}",
+        session.remoteAddress,
+        status,
+        context.resumeTimeout,
+        context.resumeKey
+      )
+      return
     }
 
-    override fun afterConnectionClosed(session: WebSocketSession?, status: CloseStatus?) {
-        val context = contextMap.remove(session!!.id) ?: return
-        if (context.resumeKey != null) {
-            resumableSessions.remove(context.resumeKey!!)?.let { removed ->
-                log.warn("Shutdown resumable session with key ${removed.resumeKey} because it has the same key as a " +
-                        "newly disconnected resumable session.")
-                removed.shutdown()
-            }
+    log.info("Connection closed from {} -- {}", session.remoteAddress, status)
 
-            resumableSessions[context.resumeKey!!] = context
-            context.pause()
-            log.info("Connection closed from {} with status {} -- " +
-                    "Session can be resumed within the next {} seconds with key {}",
-                    session.remoteAddress,
-                    status,
-                    context.resumeTimeout,
-                    context.resumeKey
-            )
-            return
-        }
+    context.shutdown()
+  }
 
-        log.info("Connection closed from {} -- {}", session.remoteAddress, status)
-
-        context.shutdown()
+  override fun handleTextMessage(session: WebSocketSession?, message: TextMessage?) {
+    try {
+      handleTextMessageSafe(session!!, message!!)
+    } catch (e: Exception) {
+      log.error("Exception while handling websocket message", e)
     }
 
-    override fun handleTextMessage(session: WebSocketSession?, message: TextMessage?) {
-        try {
-            handleTextMessageSafe(session!!, message!!)
-        } catch (e: Exception) {
-            log.error("Exception while handling websocket message", e)
-        }
+  }
 
+  private fun handleTextMessageSafe(session: WebSocketSession, message: TextMessage) {
+    val json = JSONObject(message.payload)
+
+    log.info(message.payload)
+
+    if (!session.isOpen) {
+      log.error("Ignoring closing websocket: " + session.remoteAddress!!)
+      return
     }
 
-    private fun handleTextMessageSafe(session: WebSocketSession, message: TextMessage) {
-        val json = JSONObject(message.payload)
+    val context = contextMap[session.id]
+      ?: throw IllegalStateException("No context for session ID ${session.id}. Broken websocket?")
 
-        log.info(message.payload)
-
-        if (!session.isOpen) {
-            log.error("Ignoring closing websocket: " + session.remoteAddress!!)
-            return
-        }
-
-        val context = contextMap[session.id]
-                ?: throw IllegalStateException("No context for session ID ${session.id}. Broken websocket?")
-
-        when (json.getString("op")) {
-            // @formatter:off
-            "voiceUpdate"       -> handlers.voiceUpdate(context, json)
-            "play"              -> handlers.play(context, json)
-            "stop"              -> handlers.stop(context, json)
-            "pause"             -> handlers.pause(context, json)
-            "seek"              -> handlers.seek(context, json)
-            "volume"            -> handlers.volume(context, json)
-            "destroy"           -> handlers.destroy(context, json)
-            "configureResuming" -> handlers.configureResuming(context, json)
-            "equalizer"         -> handlers.equalizer(context, json)
-            "filters"           -> handlers.filters(context, json.getString("guildId"), message.payload)
-            "ping"              -> {
-                val json = JSONObject()
-                json.put("op", "pong")
-                context.send(json)
-            }
-            else                -> log.warn("Unexpected operation: " + json.getString("op"))
-            // @formatter:on
-        }
+    when (json.getString("op")) {
+      // @formatter:off
+      "voiceUpdate" -> handlers.voiceUpdate(context, json)
+      "play" -> handlers.play(context, json)
+      "stop" -> handlers.stop(context, json)
+      "pause" -> handlers.pause(context, json)
+      "seek" -> handlers.seek(context, json)
+      "volume" -> handlers.volume(context, json)
+      "destroy" -> handlers.destroy(context, json)
+      "configureResuming" -> handlers.configureResuming(context, json)
+      "equalizer" -> handlers.equalizer(context, json)
+      "filters" -> handlers.filters(context, json.getString("guildId"), message.payload)
+      "ping" -> {
+        val json = JSONObject()
+        json.put("op", "pong")
+        context.send(json)
+      }
+      else -> log.warn("Unexpected operation: " + json.getString("op"))
+      // @formatter:on
     }
+  }
 
-    internal fun onSessionResumeTimeout(context: SocketContext) {
-        resumableSessions.remove(context.resumeKey)
-        context.shutdown()
-    }
+  internal fun onSessionResumeTimeout(context: SocketContext) {
+    resumableSessions.remove(context.resumeKey)
+    context.shutdown()
+  }
 
-    internal fun canResume(key: String) = resumableSessions[key]?.stopResumeTimeout() ?: false
+  internal fun canResume(key: String) = resumableSessions[key]?.stopResumeTimeout() ?: false
 }

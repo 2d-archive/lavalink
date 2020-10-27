@@ -29,6 +29,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackEndReason;
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame;
 import io.netty.buffer.ByteBuf;
+import lavalink.server.config.ServerConfig;
 import lavalink.server.io.SocketContext;
 import lavalink.server.io.SocketServer;
 import lavalink.server.player.filters.FilterChain;
@@ -47,6 +48,8 @@ public class Player extends AudioEventAdapter {
     private static final Logger log = LoggerFactory.getLogger(Player.class);
 
     private final SocketContext socketContext;
+    private final ServerConfig serverConfig;
+
     private final String guildId;
     private final AudioPlayer player;
     private final AudioLossCounter audioLossCounter = new AudioLossCounter();
@@ -54,8 +57,10 @@ public class Player extends AudioEventAdapter {
     private ScheduledFuture<?> myFuture = null;
     private FilterChain filters;
 
-    public Player(SocketContext socketContext, String guildId, AudioPlayerManager audioPlayerManager) {
+    public Player(SocketContext socketContext, String guildId, AudioPlayerManager audioPlayerManager, ServerConfig serverConfig) {
         this.socketContext = socketContext;
+        this.serverConfig = serverConfig;
+
         this.guildId = guildId;
         this.player = audioPlayerManager.createPlayer();
         this.player.addListener(this);
@@ -145,8 +150,12 @@ public class Player extends AudioEventAdapter {
                 if (socketContext.getSessionPaused()) return;
 
                 SocketServer.Companion.sendPlayerUpdate(socketContext, this);
-            }, 0, 5, TimeUnit.SECONDS);
+            }, 0, this.getInterval(), TimeUnit.SECONDS);
         }
+    }
+
+    private int getInterval() {
+        return serverConfig.getPlayerUpdateInterval();
     }
 
     public void provideTo(VoiceConnection connection) {
