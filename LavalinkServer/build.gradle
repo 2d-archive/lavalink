@@ -34,33 +34,46 @@ bootRun {
 }
 
 dependencies {
+    compile group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
+
+    // Audio Sending
     compile (group: 'moe.kyokobot.koe', name: 'core', version: koeVersion) {
         // This version of SLF4J does not recognise Logback 1.2.3
         exclude group: "org.slf4j", module: "slf4j-api"
     }
     compile group: 'moe.kyokobot.koe', name: 'ext-udpqueue', version: koeVersion
+
+    // Audio Player
     compile group: 'com.sedmelluq', name: 'lavaplayer', version: lavaplayerVersion
     compile group: 'com.sedmelluq', name: 'lavaplayer-ext-youtube-rotator', version: lavaplayerIpRotatorVersion
-    compile group: 'com.github.natanbc', name: 'lavadsp', version: lavaDspVersion
-    compile group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
 
+    // Filters
+    compile group: 'com.github.natanbc', name: 'lavadsp', version: lavaDspVersion
+
+    // Spring
     compile group: 'org.springframework', name: 'spring-websocket', version: springWebSocketVersion
-    compile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
-    compile group: 'io.sentry', name: 'sentry-logback', version: sentryLogbackVersion
-    compile group: 'com.github.oshi', name: 'oshi-core', version: oshiVersion
-    compile group: 'org.json', name: 'json', version: jsonOrgVersion
-    compile group: 'com.google.code.gson', name: 'gson', version: gsonVersion
     compile(group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: springBootVersion) {
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-tomcat'
     }
     compile group: 'org.springframework.boot', name: 'spring-boot-starter-undertow', version: springBootVersion
-    compileOnly group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: spotbugsAnnotationsVersion
 
+    // Logging and Statistics
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
+    compile group: 'io.sentry', name: 'sentry-logback', version: sentryLogbackVersion
     compile group: 'io.prometheus', name: 'simpleclient', version: prometheusVersion
     compile group: 'io.prometheus', name: 'simpleclient_hotspot', version: prometheusVersion
     compile group: 'io.prometheus', name: 'simpleclient_logback', version: prometheusVersion
     compile group: 'io.prometheus', name: 'simpleclient_servlet', version: prometheusVersion
 
+    // Native System Stuff
+    compile group: 'com.github.oshi', name: 'oshi-core', version: oshiVersion
+
+    // idk Json
+    compile group: 'org.json', name: 'json', version: jsonOrgVersion
+    compile group: 'com.google.code.gson', name: 'gson', version: gsonVersion
+
+    // Idk test stuff?
+    compileOnly group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: spotbugsAnnotationsVersion
     testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: springBootVersion
 }
 
