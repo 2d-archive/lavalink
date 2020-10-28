@@ -10,8 +10,8 @@ import java.util.List;
 class LoadResult {
   public ResultStatus loadResultType;
   public List<AudioTrack> tracks;
-  public String playlistName;
-  public Integer selectedTrack;
+  public @Nullable String playlistName;
+  public @Nullable Integer selectedTrack;
   public FriendlyException exception;
 
   public LoadResult(ResultStatus loadResultType, List<AudioTrack> tracks,
