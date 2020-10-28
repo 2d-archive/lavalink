@@ -22,32 +22,49 @@
 
 package lavalink.server.util;
 
+import com.github.natanbc.lavadsp.natives.TimescaleNativeLibLoader;
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager;
 import com.sedmelluq.discord.lavaplayer.tools.io.MessageInput;
 import com.sedmelluq.discord.lavaplayer.tools.io.MessageOutput;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import org.apache.commons.codec.binary.Base64;
 
+import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
 public class Util {
+  @Nullable
+  private static Boolean TIMESCALE_ENABLED = null;
 
   public static int getShardFromSnowflake(String snowflake, int numShards) {
     return (int) ((Long.parseLong(snowflake) >> 22) % numShards);
   }
 
+  public static Boolean isTimescaleLoaded() {
+    if (TIMESCALE_ENABLED != null) {
+      return TIMESCALE_ENABLED;
+    }
+
+    try {
+      TimescaleNativeLibLoader.loadTimescaleLibrary();
+      return TIMESCALE_ENABLED = true;
+    } catch (Throwable e) {
+      return TIMESCALE_ENABLED = false;
+    }
+  }
+
   public static AudioTrack toAudioTrack(AudioPlayerManager audioPlayerManager, String message) throws IOException {
     byte[] b64 = Base64.decodeBase64(message);
-    ByteArrayInputStream bais = new ByteArrayInputStream(b64);
-    return audioPlayerManager.decodeTrack(new MessageInput(bais)).decodedTrack;
+    ByteArrayInputStream in = new ByteArrayInputStream(b64);
+    return audioPlayerManager.decodeTrack(new MessageInput(in)).decodedTrack;
   }
 
   public static String toMessage(AudioPlayerManager audioPlayerManager, AudioTrack track) throws IOException {
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    audioPlayerManager.encodeTrack(new MessageOutput(baos), track);
-    return Base64.encodeBase64String(baos.toByteArray());
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    audioPlayerManager.encodeTrack(new MessageOutput(out), track);
+    return Base64.encodeBase64String(out.toByteArray());
   }
 
 }

@@ -26,6 +26,7 @@ import com.github.natanbc.lavadsp.natives.TimescaleNativeLibLoader
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
 import lavalink.server.config.ServerConfig
 import lavalink.server.player.Player
+import lavalink.server.util.Util
 import moe.kyokobot.koe.Koe
 import moe.kyokobot.koe.KoeOptions
 import org.json.JSONObject
@@ -55,20 +56,10 @@ class SocketServer(
   private val koe = Koe.koe(koeOptions)
 
   init {
-    TimescaleNativeLibLoader.loadTimescaleLibrary()
-    log.info("Loaded Timescale")
-  }
-
-  companion object {
-    private val log = LoggerFactory.getLogger(SocketServer::class.java)
-
-    fun sendPlayerUpdate(socketContext: SocketContext, player: Player) {
-      val json = JSONObject()
-      json.put("op", "playerUpdate")
-      json.put("guildId", player.guildId)
-      json.put("state", player.state)
-
-      socketContext.send(json)
+    if (Util.isTimescaleLoaded()) {
+      log.info("Timescale natives loaded successfully.")
+    } else {
+      log.info("Timescale natives failed to load, the timescale filter won't work.")
     }
   }
 
@@ -180,5 +171,19 @@ class SocketServer(
     context.shutdown()
   }
 
-  internal fun canResume(key: String) = resumableSessions[key]?.stopResumeTimeout() ?: false
+  internal fun canResume(key: String) = resumableSessions[key]?.stopResumeTimeout()
+    ?: false
+
+  companion object {
+    private val log = LoggerFactory.getLogger(SocketServer::class.java)
+
+    fun sendPlayerUpdate(socketContext: SocketContext, player: Player) {
+      val json = JSONObject()
+      json.put("op", "playerUpdate")
+      json.put("guildId", player.guildId)
+      json.put("state", player.state)
+
+      socketContext.send(json)
+    }
+  }
 }

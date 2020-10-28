@@ -1,6 +1,6 @@
 package lavalink.server.io
 
-import lavalink.server.player.filters.Band
+import lavalink.server.player.filters.configs.Band
 import lavalink.server.player.filters.FilterChain
 import lavalink.server.util.Util
 import moe.kyokobot.koe.VoiceServerInfo
