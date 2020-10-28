@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component
 
 @ConfigurationProperties(prefix = "lavalink.server.koe")
 @Component
-class KoeServerConfig {
+class KoeConfigProperties {
   var useEpoll: Boolean = true
   var highPacketPriority: Boolean = true
   var bufferDurationMs: Int? = null

@@ -15,7 +15,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
 @Configuration
-class KoeConfiguration(val config: KoeServerConfig) {
+class KoeConfiguration(val configProperties: KoeConfigProperties) {
 
   private val log: Logger = LoggerFactory.getLogger(KoeConfiguration::class.java)
 
@@ -25,7 +25,7 @@ class KoeConfiguration(val config: KoeServerConfig) {
     val os = System.getProperty("os.name")
     val arch = System.getProperty("os.arch")
 
-    setHighPacketPriority(config.highPacketPriority)
+    setHighPacketPriority(configProperties.highPacketPriority)
 
     /* JDA-NAS */
     // Maybe add Windows natives back?
@@ -35,7 +35,7 @@ class KoeConfiguration(val config: KoeServerConfig) {
     if (nasSupported) {
       log.info("Enabling JDA-NAS")
 
-      var bufferSize = config.bufferDurationMs ?: UdpQueueFramePollerFactory.DEFAULT_BUFFER_DURATION
+      var bufferSize = configProperties.bufferDurationMs ?: UdpQueueFramePollerFactory.DEFAULT_BUFFER_DURATION
       if (bufferSize <= 0) {
         log.warn("Buffer size of ${bufferSize}ms is illegal. Defaulting to ${UdpQueueFramePollerFactory.DEFAULT_BUFFER_DURATION}")
         bufferSize = UdpQueueFramePollerFactory.DEFAULT_BUFFER_DURATION
@@ -48,7 +48,7 @@ class KoeConfiguration(val config: KoeServerConfig) {
     }
 
     /* Epoll Transport */
-    if (config.useEpoll && Epoll.isAvailable()) {
+    if (configProperties.useEpoll && Epoll.isAvailable()) {
       log.info("Using Epoll Transport.")
       setEventLoopGroup(EpollEventLoopGroup())
       setDatagramChannelClass(EpollDatagramChannel::class.java)
@@ -57,18 +57,18 @@ class KoeConfiguration(val config: KoeServerConfig) {
 
     /* Byte Buf Allocator */
     var custom = true
-    when (config.byteBufAllocator) {
+    when (configProperties.byteBufAllocator) {
       "netty-default" -> setByteBufAllocator(ByteBufAllocator.DEFAULT)
       "default", "pooled" -> setByteBufAllocator(PooledByteBufAllocator.DEFAULT)
       "unpooled" -> setByteBufAllocator(UnpooledByteBufAllocator.DEFAULT)
       else -> {
-        log.warn("Invalid byte buf allocator \"${config.byteBufAllocator}\", defaulting to the 'pooled' byte buf allocator.")
+        log.warn("Invalid byte buf allocator \"${configProperties.byteBufAllocator}\", defaulting to the 'pooled' byte buf allocator.")
         custom = false
       }
     }
 
     if (custom) {
-      log.info("Using the '${config.byteBufAllocator}' byte buf allocator")
+      log.info("Using the '${configProperties.byteBufAllocator}' byte buf allocator")
     }
   }.create()
 }

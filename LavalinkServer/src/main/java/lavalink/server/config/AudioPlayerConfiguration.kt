@@ -10,6 +10,7 @@ import com.sedmelluq.discord.lavaplayer.source.soundcloud.*
 import com.sedmelluq.discord.lavaplayer.source.twitch.TwitchStreamAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.source.vimeo.VimeoAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.source.youtube.YoutubeAudioSourceManager
+import com.sedmelluq.discord.lavaplayer.track.playback.NonAllocatingAudioFrameBuffer
 import com.sedmelluq.lava.extensions.youtuberotator.YoutubeIpRotatorSetup
 import com.sedmelluq.lava.extensions.youtuberotator.planner.*
 import com.sedmelluq.lava.extensions.youtuberotator.tools.ip.Ipv4Block
@@ -31,29 +32,30 @@ class AudioPlayerConfiguration {
 
   @Bean
   fun audioPlayerManagerSupplier(
-      sources: AudioSourcesConfig,
-      serverConfig: ServerConfig,
-      routePlanner: AbstractRoutePlanner?
+    sources: AudioSourcesConfig,
+    lavaplayerProps: LavaplayerConfigProperties,
+    serverConfig: ServerConfig,
+    routePlanner: AbstractRoutePlanner?
   ): AudioPlayerManager {
     val audioPlayerManager = DefaultAudioPlayerManager()
 
-    if (serverConfig.isGcWarnings) {
+    if (lavaplayerProps.isGcWarnings) {
       audioPlayerManager.enableGcMonitoring()
     }
 
     if (sources.isYoutube) {
-      val youtube = YoutubeAudioSourceManager(serverConfig.isYoutubeSearchEnabled)
-      if (serverConfig.youtubeTimeout != -1) {
+      val youtube = YoutubeAudioSourceManager(lavaplayerProps.isYoutubeSearchEnabled)
+      if (lavaplayerProps.youtubeTimeout != -1) {
         youtube.configureRequests {
           RequestConfig.copy(it).apply {
-            setConnectTimeout(serverConfig.youtubeTimeout)
-            setSocketTimeout(serverConfig.youtubeTimeout)
-            setConnectionRequestTimeout(serverConfig.youtubeTimeout)
+            setConnectTimeout(lavaplayerProps.youtubeTimeout)
+            setSocketTimeout(lavaplayerProps.youtubeTimeout)
+            setConnectionRequestTimeout(lavaplayerProps.youtubeTimeout)
           }.build()
         }
       }
       if (routePlanner != null) {
-        val retryLimit = serverConfig.ratelimit?.retryLimit ?: -1
+        val retryLimit = lavaplayerProps.ratelimit?.retryLimit ?: -1
         when {
           retryLimit < 0 -> YoutubeIpRotatorSetup(routePlanner).forSource(youtube).setup()
           retryLimit == 0 -> YoutubeIpRotatorSetup(routePlanner).forSource(youtube).withRetryLimit(Int.MAX_VALUE)
@@ -62,21 +64,21 @@ class AudioPlayerConfiguration {
 
         }
       }
-      val playlistLoadLimit = serverConfig.youtubePlaylistLoadLimit
+      val playlistLoadLimit = lavaplayerProps.youtubePlaylistLoadLimit
       if (playlistLoadLimit != null) youtube.setPlaylistPageCount(playlistLoadLimit)
       audioPlayerManager.registerSourceManager(youtube)
     }
     if (sources.isSoundcloud) {
       val dataReader = DefaultSoundCloudDataReader()
-        val htmlDataLoader = DefaultSoundCloudHtmlDataLoader()
-        val formatHandler = DefaultSoundCloudFormatHandler()
+      val htmlDataLoader = DefaultSoundCloudHtmlDataLoader()
+      val formatHandler = DefaultSoundCloudFormatHandler()
 
-        audioPlayerManager.registerSourceManager(SoundCloudAudioSourceManager(
-          serverConfig.isSoundcloudSearchEnabled,
-          dataReader,
-          htmlDataLoader,
-          formatHandler,
-          DefaultSoundCloudPlaylistLoader(htmlDataLoader, dataReader, formatHandler)
+      audioPlayerManager.registerSourceManager(SoundCloudAudioSourceManager(
+        lavaplayerProps.isSoundcloudSearchEnabled,
+        dataReader,
+        htmlDataLoader,
+        formatHandler,
+        DefaultSoundCloudPlaylistLoader(htmlDataLoader, dataReader, formatHandler)
       ))
     }
     if (sources.isBandcamp) audioPlayerManager.registerSourceManager(BandcampAudioSourceManager())
@@ -87,17 +89,23 @@ class AudioPlayerConfiguration {
     if (sources.isLocal) audioPlayerManager.registerSourceManager(LocalAudioSourceManager())
 
     audioPlayerManager.configuration.isFilterHotSwapEnabled = true
+    audioPlayerManager.frameBufferDuration = lavaplayerProps.frameBufferDuration
+    if (lavaplayerProps.nonAllocating) {
+      log.info("Using the non-allocating frame buffer.")
+      audioPlayerManager.configuration.setFrameBufferFactory(::NonAllocatingAudioFrameBuffer)
+    }
 
     return audioPlayerManager
   }
 
   @Bean
-  fun routePlanner(serverConfig: ServerConfig): AbstractRoutePlanner? {
-    val rateLimitConfig = serverConfig.ratelimit
+  fun routePlanner(serverConfig: ServerConfig, lavaplayerProps: LavaplayerConfigProperties): AbstractRoutePlanner? {
+    val rateLimitConfig = lavaplayerProps.ratelimit
     if (rateLimitConfig == null) {
       log.debug("No rate limit config block found, skipping setup of route planner")
       return null
     }
+
     val ipBlockList = rateLimitConfig.ipBlocks
     if (ipBlockList.isEmpty()) {
       log.info("List of ip blocks is empty, skipping setup of route planner")
@@ -105,9 +113,7 @@ class AudioPlayerConfiguration {
     }
 
     val blacklisted = rateLimitConfig.excludedIps.map { InetAddress.getByName(it) }
-    val filter = Predicate<InetAddress> {
-      !blacklisted.contains(it)
-    }
+    val filter = Predicate<InetAddress> { !blacklisted.contains(it) }
     val ipBlocks = ipBlockList.map {
       when {
         Ipv4Block.isIpv4CidrBlock(it) -> Ipv4Block(it)
@@ -117,10 +123,10 @@ class AudioPlayerConfiguration {
     }
 
     return when (rateLimitConfig.strategy.toLowerCase().trim()) {
-        "rotateonban" -> RotatingIpRoutePlanner(ipBlocks, filter, rateLimitConfig.searchTriggersFail)
-        "loadbalance" -> BalancingIpRoutePlanner(ipBlocks, filter, rateLimitConfig.searchTriggersFail)
-        "nanoswitch" -> NanoIpRoutePlanner(ipBlocks, rateLimitConfig.searchTriggersFail)
-        "rotatingnanoswitch" -> RotatingNanoIpRoutePlanner(ipBlocks, filter, rateLimitConfig.searchTriggersFail)
+      "rotateonban" -> RotatingIpRoutePlanner(ipBlocks, filter, rateLimitConfig.searchTriggersFail)
+      "loadbalance" -> BalancingIpRoutePlanner(ipBlocks, filter, rateLimitConfig.searchTriggersFail)
+      "nanoswitch" -> NanoIpRoutePlanner(ipBlocks, rateLimitConfig.searchTriggersFail)
+      "rotatingnanoswitch" -> RotatingNanoIpRoutePlanner(ipBlocks, filter, rateLimitConfig.searchTriggersFail)
       else -> throw RuntimeException("Unknown strategy!")
     }
   }

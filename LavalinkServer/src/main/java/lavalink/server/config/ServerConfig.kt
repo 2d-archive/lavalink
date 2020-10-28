@@ -28,15 +28,8 @@ import org.springframework.stereotype.Component
 @ConfigurationProperties(prefix = "lavalink.server")
 @Component
 class ServerConfig {
-  var password: String? = "youshallnotpass"
-
   @get:Deprecated("use {@link SentryConfigProperties} instead.")
   var sentryDsn = ""
-  var youtubePlaylistLoadLimit: Int? = null
   var playerUpdateInterval: Int? = 5
-  var youtubeTimeout = -1
-  var isGcWarnings = true
-  var isYoutubeSearchEnabled = true
-  var isSoundcloudSearchEnabled = true
-  var ratelimit: RateLimitConfig? = null
+  var password: String? = "youshallnotpass"
 }
