@@ -54,7 +54,7 @@ subprojects {
         jdaNasVersion                   = '1.1.0'
         jappVersion                     = '1.3.2-MINN'
         koeVersion                      = '1.0.1'
-        lavaDspVersion                  = '0.7.1'
+        lavaDspVersion                  = '0.7.4'
         nettyEpollVersion               = "4.1.52.Final"
 
         springBootVersion               = "${springBootVersion}"
