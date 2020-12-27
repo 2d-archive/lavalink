@@ -3,7 +3,6 @@ package lavalink.server.config
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.player.DefaultAudioPlayerManager
 import com.sedmelluq.discord.lavaplayer.source.bandcamp.BandcampAudioSourceManager
-import com.sedmelluq.discord.lavaplayer.source.beam.BeamAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.source.http.HttpAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.source.local.LocalAudioSourceManager
 import com.sedmelluq.discord.lavaplayer.source.soundcloud.*
@@ -15,7 +14,6 @@ import com.sedmelluq.lava.extensions.youtuberotator.YoutubeIpRotatorSetup
 import com.sedmelluq.lava.extensions.youtuberotator.planner.*
 import com.sedmelluq.lava.extensions.youtuberotator.tools.ip.Ipv4Block
 import com.sedmelluq.lava.extensions.youtuberotator.tools.ip.Ipv6Block
-import org.apache.http.client.config.RequestConfig
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -34,7 +32,6 @@ class AudioPlayerConfiguration {
   fun audioPlayerManagerSupplier(
     sources: AudioSourcesConfig,
     lavaplayerProps: LavaplayerConfigProperties,
-    serverConfig: ServerConfig,
     routePlanner: AbstractRoutePlanner?
   ): AudioPlayerManager {
     val audioPlayerManager = DefaultAudioPlayerManager()
@@ -45,15 +42,6 @@ class AudioPlayerConfiguration {
 
     if (sources.isYoutube) {
       val youtube = YoutubeAudioSourceManager(lavaplayerProps.isYoutubeSearchEnabled)
-      if (lavaplayerProps.youtubeTimeout != -1) {
-        youtube.configureRequests {
-          RequestConfig.copy(it).apply {
-            setConnectTimeout(lavaplayerProps.youtubeTimeout)
-            setSocketTimeout(lavaplayerProps.youtubeTimeout)
-            setConnectionRequestTimeout(lavaplayerProps.youtubeTimeout)
-          }.build()
-        }
-      }
       if (routePlanner != null) {
         val retryLimit = lavaplayerProps.ratelimit?.retryLimit ?: -1
         when {
@@ -61,30 +49,36 @@ class AudioPlayerConfiguration {
           retryLimit == 0 -> YoutubeIpRotatorSetup(routePlanner).forSource(youtube).withRetryLimit(Int.MAX_VALUE)
             .setup()
           else -> YoutubeIpRotatorSetup(routePlanner).forSource(youtube).withRetryLimit(retryLimit).setup()
-
         }
       }
+
       val playlistLoadLimit = lavaplayerProps.youtubePlaylistLoadLimit
-      if (playlistLoadLimit != null) youtube.setPlaylistPageCount(playlistLoadLimit)
+      if (playlistLoadLimit != null) {
+        youtube.setPlaylistPageCount(playlistLoadLimit)
+      }
+
       audioPlayerManager.registerSourceManager(youtube)
     }
+
     if (sources.isSoundcloud) {
       val dataReader = DefaultSoundCloudDataReader()
       val htmlDataLoader = DefaultSoundCloudHtmlDataLoader()
       val formatHandler = DefaultSoundCloudFormatHandler()
 
-      audioPlayerManager.registerSourceManager(SoundCloudAudioSourceManager(
-        lavaplayerProps.isSoundcloudSearchEnabled,
-        dataReader,
-        htmlDataLoader,
-        formatHandler,
-        DefaultSoundCloudPlaylistLoader(htmlDataLoader, dataReader, formatHandler)
-      ))
+      audioPlayerManager.registerSourceManager(
+        SoundCloudAudioSourceManager(
+          lavaplayerProps.isSoundcloudSearchEnabled,
+          dataReader,
+          htmlDataLoader,
+          formatHandler,
+          DefaultSoundCloudPlaylistLoader(htmlDataLoader, dataReader, formatHandler)
+        )
+      )
     }
+
     if (sources.isBandcamp) audioPlayerManager.registerSourceManager(BandcampAudioSourceManager())
     if (sources.isTwitch) audioPlayerManager.registerSourceManager(TwitchStreamAudioSourceManager())
     if (sources.isVimeo) audioPlayerManager.registerSourceManager(VimeoAudioSourceManager())
-    if (sources.isMixer) audioPlayerManager.registerSourceManager(BeamAudioSourceManager())
     if (sources.isHttp) audioPlayerManager.registerSourceManager(HttpAudioSourceManager())
     if (sources.isLocal) audioPlayerManager.registerSourceManager(LocalAudioSourceManager())
 
@@ -99,7 +93,7 @@ class AudioPlayerConfiguration {
   }
 
   @Bean
-  fun routePlanner(serverConfig: ServerConfig, lavaplayerProps: LavaplayerConfigProperties): AbstractRoutePlanner? {
+  fun routePlanner(lavaplayerProps: LavaplayerConfigProperties): AbstractRoutePlanner? {
     val rateLimitConfig = lavaplayerProps.ratelimit
     if (rateLimitConfig == null) {
       log.debug("No rate limit config block found, skipping setup of route planner")

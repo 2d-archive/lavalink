@@ -15,7 +15,6 @@ public class AudioSourcesConfig {
   private boolean soundcloud = true;
   private boolean twitch = true;
   private boolean vimeo = true;
-  private boolean mixer = true;
   private boolean http = true;
   private boolean local = false;
 
@@ -57,14 +56,6 @@ public class AudioSourcesConfig {
 
   public void setVimeo(boolean vimeo) {
     this.vimeo = vimeo;
-  }
-
-  public boolean isMixer() {
-    return mixer;
-  }
-
-  public void setMixer(boolean mixer) {
-    this.mixer = mixer;
   }
 
   public boolean isHttp() {

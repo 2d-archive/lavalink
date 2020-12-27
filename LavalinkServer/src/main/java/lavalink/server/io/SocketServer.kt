@@ -22,7 +22,6 @@
 
 package lavalink.server.io
 
-import com.github.natanbc.lavadsp.natives.TimescaleNativeLibLoader
 import com.sedmelluq.discord.lavaplayer.player.AudioPlayerManager
 import lavalink.server.config.ServerConfig
 import lavalink.server.player.Player
@@ -36,7 +35,6 @@ import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.TextWebSocketHandler
-import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 @Service
@@ -47,8 +45,7 @@ class SocketServer(
 ) : TextWebSocketHandler() {
 
   // userId <-> shardCount
-  private val shardCounts = ConcurrentHashMap<String, Int>()
-  val contextMap = HashMap<String, SocketContext>()
+  val contextMap = ConcurrentHashMap<String, SocketContext>()
 
   @Suppress("LeakingThis")
   private val handlers = WebSocketHandlers(contextMap)
@@ -67,11 +64,10 @@ class SocketServer(
     get() = contextMap.values
 
   override fun afterConnectionEstablished(session: WebSocketSession) {
-    val shardCount = Integer.parseInt(session.handshakeHeaders.getFirst("Num-Shards")!!)
     val userId = session.handshakeHeaders.getFirst("User-Id")!!
     val resumeKey = session.handshakeHeaders.getFirst("Resume-Key")
-
-    shardCounts[userId] = shardCount
+    val clientName = session.handshakeHeaders.getFirst("Client-Name")
+    val userAgent = session.handshakeHeaders.getFirst("User-Agent")
 
     var resumable: SocketContext? = null
     if (resumeKey != null) resumable = resumableSessions.remove(resumeKey)
@@ -83,8 +79,6 @@ class SocketServer(
       return
     }
 
-    shardCounts[userId] = shardCount
-
     contextMap[session.id] = SocketContext(
       audioPlayerManager,
       serverConfig,
@@ -93,22 +87,36 @@ class SocketServer(
       userId,
       koe.newClient(userId.toLong())
     )
-    log.info("Connection successfully established from " + session.remoteAddress!!)
+
+    if (clientName != null) {
+      log.info("Connection successfully established from $clientName")
+      return
+    }
+
+    log.info("Connection successfully established")
+    if (userAgent != null) {
+      log.warn("Library developers: Please specify a 'Client-Name' header. User agent: $userAgent")
+    } else {
+      log.warn("Library developers: Please specify a 'Client-Name' header.")
+    }
   }
 
   override fun afterConnectionClosed(session: WebSocketSession?, status: CloseStatus?) {
     val context = contextMap.remove(session!!.id) ?: return
     if (context.resumeKey != null) {
       resumableSessions.remove(context.resumeKey!!)?.let { removed ->
-        log.warn("Shutdown resumable session with key ${removed.resumeKey} because it has the same key as a " +
-          "newly disconnected resumable session.")
+        log.warn(
+          "Shutdown resumable session with key ${removed.resumeKey} because it has the same key as a " +
+            "newly disconnected resumable session."
+        )
         removed.shutdown()
       }
 
       resumableSessions[context.resumeKey!!] = context
       context.pause()
-      log.info("Connection closed from {} with status {} -- " +
-        "Session can be resumed within the next {} seconds with key {}",
+      log.info(
+        "Connection closed from {} with status {} -- " +
+          "Session can be resumed within the next {} seconds with key {}",
         session.remoteAddress,
         status,
         context.resumeTimeout,
@@ -156,11 +164,6 @@ class SocketServer(
       "configureResuming" -> handlers.configureResuming(context, json)
       "equalizer" -> handlers.equalizer(context, json)
       "filters" -> handlers.filters(context, json.getString("guildId"), message.payload)
-      "ping" -> {
-        val json = JSONObject()
-        json.put("op", "pong")
-        context.send(json)
-      }
       else -> log.warn("Unexpected operation: " + json.getString("op"))
       // @formatter:on
     }

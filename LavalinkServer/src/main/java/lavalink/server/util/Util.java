@@ -38,10 +38,6 @@ public class Util {
   @Nullable
   private static Boolean TIMESCALE_ENABLED = null;
 
-  public static int getShardFromSnowflake(String snowflake, int numShards) {
-    return (int) ((Long.parseLong(snowflake) >> 22) % numShards);
-  }
-
   public static Boolean isTimescaleLoaded() {
     if (TIMESCALE_ENABLED != null) {
       return TIMESCALE_ENABLED;

@@ -1,5 +1,7 @@
 package lavalink.server.io
 
+import com.sedmelluq.discord.lavaplayer.track.TrackMarker
+import lavalink.server.player.TrackEndMarkerHandler
 import lavalink.server.player.filters.configs.Band
 import lavalink.server.player.filters.FilterChain
 import lavalink.server.util.Util
@@ -55,6 +57,15 @@ class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
       val filters = player.filters ?: FilterChain()
       filters.volume = json.getFloat("volume") / 100
       player.filters = filters
+    }
+
+    if (json.has("endTime")) {
+      val stopTime = json.getLong("endTime")
+      if (stopTime > 0) {
+        val handler = TrackEndMarkerHandler(player)
+        val marker = TrackMarker(stopTime, handler)
+        track.setMarker(marker)
+      }
     }
 
     player.play(track)

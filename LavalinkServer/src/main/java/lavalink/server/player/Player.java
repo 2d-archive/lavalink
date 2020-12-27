@@ -45,8 +45,6 @@ import java.util.concurrent.TimeUnit;
 
 public class Player extends AudioEventAdapter {
 
-  private static final Logger log = LoggerFactory.getLogger(Player.class);
-
   private final SocketContext socketContext;
   private final ServerConfig serverConfig;
 

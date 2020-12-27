@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component
 @Component
 class LavaplayerConfigProperties {
   var youtubePlaylistLoadLimit: Int? = null
-  var youtubeTimeout = -1
   var isGcWarnings = true
   var isYoutubeSearchEnabled = true
   var isSoundcloudSearchEnabled = true

@@ -46,9 +46,6 @@ public class AudioLossCounter extends AudioEventAdapter {
   private long lastTrackStarted = Long.MAX_VALUE / 2;
   private long lastTrackEnded = Long.MAX_VALUE;
 
-  AudioLossCounter() {
-  }
-
   void onLoss() {
     checkTime();
     curLoss++;
