@@ -37,11 +37,11 @@ dependencies {
     compile group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
 
     // Audio Sending
+    compile group: 'moe.kyokobot.koe', name: 'ext-udpqueue', version: koeVersion
     compile (group: 'moe.kyokobot.koe', name: 'core', version: koeVersion) {
         // This version of SLF4J does not recognise Logback 1.2.3
         exclude group: "org.slf4j", module: "slf4j-api"
     }
-    compile group: 'moe.kyokobot.koe', name: 'ext-udpqueue', version: koeVersion
 
     // Transport
     compile "io.netty:netty-transport-native-epoll:$nettyEpollVersion:linux-x86_64"

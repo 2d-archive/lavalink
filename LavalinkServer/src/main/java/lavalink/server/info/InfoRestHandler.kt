@@ -5,18 +5,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Created by napster on 08.03.19.
+ * - Edited by melike2d on 01.13.21
  */
 @RestController
-public class InfoRestHandler {
-
-  private final AppInfo appInfo;
-
-  public InfoRestHandler(AppInfo appInfo) {
-    this.appInfo = appInfo;
-  }
-
+class InfoRestHandler(private val appInfo: AppInfo) {
   @GetMapping("/version")
-  public String version() {
-    return appInfo.getVersionBuild();
+  fun version(): String {
+    return appInfo.versionBuild;
   }
 }

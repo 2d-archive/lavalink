@@ -64,6 +64,7 @@ public class AudioLoaderRestHandler {
       .put("uri", trackInfo.uri)
       .put("isStream", trackInfo.isStream)
       .put("isSeekable", audioTrack.isSeekable())
+      .put("source", audioTrack.getSourceManager().getSourceName())
       .put("position", audioTrack.getPosition());
   }
 
