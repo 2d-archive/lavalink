@@ -145,8 +145,8 @@ public class Player extends AudioEventAdapter {
    * Sets the volume of this player.
    * @param volume The volume to use.
    */
-  public void setVolume(float volume) {
-    filters.setVolume(volume / 100);
+  public void setVolume(int volume) {
+    player.setVolume(volume);
   }
 
 

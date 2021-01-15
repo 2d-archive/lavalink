@@ -93,7 +93,7 @@ class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
 
   fun volume(context: SocketContext, json: JSONObject) {
     val player = context.getPlayer(json.getString("guildId"))
-    player.setVolume(json.getFloat("volume"))
+    player.setVolume(json.getInt("volume"))
   }
 
   fun equalizer(context: SocketContext, json: JSONObject) {
@@ -125,6 +125,13 @@ class WebSocketHandlers(private val contextMap: Map<String, SocketContext>) {
 
   fun filters(context: SocketContext, guildId: String, json: String) {
     val player = context.getPlayer(guildId)
-    player.filters = FilterChain.parse(json)
+
+    try {
+      val filters = FilterChain.parse(json)
+      player.filters = filters
+    } catch (ex: Exception) {
+      log.error("Error while parsing filters.", ex)
+    }
+
   }
 }
