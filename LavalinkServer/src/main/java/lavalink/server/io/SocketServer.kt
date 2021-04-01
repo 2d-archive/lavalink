@@ -181,6 +181,10 @@ class SocketServer(
     private val log = LoggerFactory.getLogger(SocketServer::class.java)
 
     fun sendPlayerUpdate(socketContext: SocketContext, player: Player) {
+      val state = player.state
+      val connected = socketContext.getMediaConnection(player).gatewayConnection?.isOpen == true
+      state.put("connected", connected)
+
       val json = JSONObject()
       json.put("op", "playerUpdate")
       json.put("guildId", player.guildId)
