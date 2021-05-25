@@ -1,3 +1,26 @@
+/*
+ *  Copyright (c) 2021 Freya Arbjerg and contributors
+ *
+ *  Permission is hereby granted, free of charge, to any person obtaining a copy
+ *  of this software and associated documentation files (the "Software"), to deal
+ *  in the Software without restriction, including without limitation the rights
+ *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *  copies of the Software, and to permit persons to whom the Software is
+ *  furnished to do so, subject to the following conditions:
+ *
+ *  The above copyright notice and this permission notice shall be included in all
+ *  copies or substantial portions of the Software.
+ *
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *  SOFTWARE.
+ *
+ */
+
 import org.apache.tools.ant.filters.ReplaceTokens
 
 apply plugin: 'application'
@@ -11,6 +34,7 @@ apply plugin: "com.adarshr.test-logger"
 description = 'Play audio to discord voice channels'
 mainClassName = "lavalink.server.Launcher"
 version = "${versionFromTag()}".toString()
+
 ext {
     moduleName = 'Lavalink-Server'
 }
@@ -21,7 +45,7 @@ bootJar {
 
 sourceCompatibility = targetCompatibility = 11
 
-bootRun {
+run {
     //compiling tests during bootRun increases the likelihood of catching broken tests locally instead of on the CI
     dependsOn compileTestJava
 
@@ -34,46 +58,46 @@ bootRun {
 }
 
 dependencies {
-    compile group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
+    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
 
     // Audio Sending
-    compile group: 'moe.kyokobot.koe', name: 'ext-udpqueue', version: koeVersion
-    compile (group: 'moe.kyokobot.koe', name: 'core', version: koeVersion) {
+    implementation group: 'moe.kyokobot.koe', name: 'ext-udpqueue', version: koeVersion
+    implementation (group: 'moe.kyokobot.koe', name: 'core', version: koeVersion) {
         // This version of SLF4J does not recognise Logback 1.2.3
         exclude group: "org.slf4j", module: "slf4j-api"
     }
 
     // Transport
-    compile "io.netty:netty-transport-native-epoll:$nettyEpollVersion:linux-x86_64"
+    implementation "io.netty:netty-transport-native-epoll:$nettyEpollVersion:linux-x86_64"
 
     // Audio Player
-    compile group: 'com.sedmelluq', name: 'lavaplayer', version: lavaplayerVersion
-    compile group: 'com.sedmelluq', name: 'lavaplayer-ext-youtube-rotator', version: lavaplayerIpRotatorVersion
+    implementation group: 'com.sedmelluq', name: 'lavaplayer', version: lavaplayerVersion
+    implementation group: 'com.sedmelluq', name: 'lavaplayer-ext-youtube-rotator', version: lavaplayerIpRotatorVersion
 
     // Filters
-    compile group: 'com.github.natanbc', name: 'lavadsp', version: lavaDspVersion
+    implementation group: 'com.github.natanbc', name: 'lavadsp', version: lavaDspVersion
 
     // Spring
-    compile group: 'org.springframework', name: 'spring-websocket', version: springWebSocketVersion
-    compile(group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: springBootVersion) {
+    implementation group: 'org.springframework', name: 'spring-websocket', version: springWebSocketVersion
+    implementation(group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: springBootVersion) {
         exclude group: 'org.springframework.boot', module: 'spring-boot-starter-tomcat'
     }
-    compile group: 'org.springframework.boot', name: 'spring-boot-starter-undertow', version: springBootVersion
+    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-undertow', version: springBootVersion
 
     // Logging and Statistics
-    compile group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
-    compile group: 'io.sentry', name: 'sentry-logback', version: sentryLogbackVersion
-    compile group: 'io.prometheus', name: 'simpleclient', version: prometheusVersion
-    compile group: 'io.prometheus', name: 'simpleclient_hotspot', version: prometheusVersion
-    compile group: 'io.prometheus', name: 'simpleclient_logback', version: prometheusVersion
-    compile group: 'io.prometheus', name: 'simpleclient_servlet', version: prometheusVersion
+    implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
+    implementation group: 'io.sentry', name: 'sentry-logback', version: sentryLogbackVersion
+    implementation group: 'io.prometheus', name: 'simpleclient', version: prometheusVersion
+    implementation group: 'io.prometheus', name: 'simpleclient_hotspot', version: prometheusVersion
+    implementation group: 'io.prometheus', name: 'simpleclient_logback', version: prometheusVersion
+    implementation group: 'io.prometheus', name: 'simpleclient_servlet', version: prometheusVersion
 
     // Native System Stuff
-    compile group: 'com.github.oshi', name: 'oshi-core', version: oshiVersion
+    implementation group: 'com.github.oshi', name: 'oshi-core', version: oshiVersion
 
     // idk Json
-    compile group: 'org.json', name: 'json', version: jsonOrgVersion
-    compile group: 'com.google.code.gson', name: 'gson', version: gsonVersion
+    implementation group: 'org.json', name: 'json', version: jsonOrgVersion
+    implementation group: 'com.google.code.gson', name: 'gson', version: gsonVersion
 
     // Idk test stuff?
     compileOnly group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: spotbugsAnnotationsVersion

@@ -12,13 +12,13 @@ repositories {
 }
 
 dependencies {
-  compile ('net.dv8tion:JDA:4.1.1_135') {
+  implementation ('net.dv8tion:JDA:4.1.1_135') {
     exclude module: 'opus-java'
   }
 
-  compile "com.github.FredBoat:Lavalink-Client:4.0"
-  compile "ch.qos.logback:logback-classic:$logbackVersion"
-  compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+  implementation "com.github.FredBoat:Lavalink-Client:4.0"
+  implementation "ch.qos.logback:logback-classic:$logbackVersion"
+  implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
 
 compileKotlin {
