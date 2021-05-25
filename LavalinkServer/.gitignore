@@ -1,9 +1,21 @@
-/.idea/
-/LavalinkServer.iml
-/logs/
-/application.yml
-/target/
-/debug_token
+# Build shit
+out/
+bin/
+target/
 build/*
-/out/
+
+# More idea settings
+.idea/
+/LavalinkServer.iml
+
+# Logs
+/logs/
+
+# Configuration
+/application.yml
+
+# idk
+/debug_token
+
+# Version file
 VERSION.txt

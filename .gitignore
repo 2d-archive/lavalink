@@ -1,15 +1,29 @@
-/.idea/
+# Logs
+logs/
+
+# Build
+target/
+build/
+out/
+bin/
+
+
+# Idea Settings
+.idea/
 *.iml
-/logs/
-/target/
-/application.yml
-*/dependency-reduced-pom.xml
-.gradle/*
-build/*
-*.jar
+
+# Gradle shit
+.gradle/
 !gradle/wrapper/gradle-wrapper.jar
+
+application.yml
+
+
+# Jars
+*.jar
+
+# Eclipse or maven shit
+*/dependency-reduced-pom.xml
 .project
 .classpath
 .settings
-/Testbot/build/
-/Testbot/out/
