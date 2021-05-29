@@ -4,7 +4,7 @@
 
 ## Warning
 
-If you use IP Rotation make sure to use the updated application.yml structure, or you won't be geting a working IPV6 rotation. <https://github.com/melike2d/lavalink/blob/dev/LavalinkServer/application.yml.example>
+If you use ip rotation make sure to use the updated application.yml file structure, or you might be at risk to ip bans. <https://github.com/melike2d/lavalink/blob/dev/LavalinkServer/application.yml.example>
 
 ## Usage
 
