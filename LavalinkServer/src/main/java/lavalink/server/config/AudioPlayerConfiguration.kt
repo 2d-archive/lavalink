@@ -63,7 +63,7 @@ class AudioPlayerConfiguration {
       audioPlayerManager.enableGcMonitoring()
     }
 
-    if (sources.isYoutube) {
+    if (sources.youtube) {
       val youtube = YoutubeAudioSourceManager(lavaplayerProps.isYoutubeSearchEnabled)
       if (routePlanner != null) {
         val retryLimit = lavaplayerProps.ratelimit?.retryLimit ?: -1
@@ -83,7 +83,7 @@ class AudioPlayerConfiguration {
       audioPlayerManager.registerSourceManager(youtube)
     }
 
-    if (sources.isSoundcloud) {
+    if (sources.soundcloud) {
       val dataReader = DefaultSoundCloudDataReader()
       val htmlDataLoader = DefaultSoundCloudHtmlDataLoader()
       val formatHandler = DefaultSoundCloudFormatHandler()
@@ -99,11 +99,11 @@ class AudioPlayerConfiguration {
       )
     }
 
-    if (sources.isBandcamp) audioPlayerManager.registerSourceManager(BandcampAudioSourceManager())
-    if (sources.isTwitch) audioPlayerManager.registerSourceManager(TwitchStreamAudioSourceManager())
-    if (sources.isVimeo) audioPlayerManager.registerSourceManager(VimeoAudioSourceManager())
-    if (sources.isHttp) audioPlayerManager.registerSourceManager(HttpAudioSourceManager())
-    if (sources.isLocal) audioPlayerManager.registerSourceManager(LocalAudioSourceManager())
+    if (sources.bandcamp) audioPlayerManager.registerSourceManager(BandcampAudioSourceManager())
+    if (sources.twitch) audioPlayerManager.registerSourceManager(TwitchStreamAudioSourceManager())
+    if (sources.vimeo) audioPlayerManager.registerSourceManager(VimeoAudioSourceManager())
+    if (sources.http) audioPlayerManager.registerSourceManager(HttpAudioSourceManager())
+    if (sources.local) audioPlayerManager.registerSourceManager(LocalAudioSourceManager())
 
     audioPlayerManager.configuration.isFilterHotSwapEnabled = true
     audioPlayerManager.frameBufferDuration = lavaplayerProps.frameBufferDuration

@@ -93,28 +93,34 @@ public class SentryConfiguration {
 
   public void turnOn(String dsn, Map<String, String> tags, String environment) {
     log.info("Turning on sentry");
-    SentryClient sentryClient = Sentry.init(dsn);
-    if (!environment.isBlank()) sentryClient.setEnvironment(environment);
 
-    if (tags != null) {
-      tags.forEach(sentryClient::addTag);
-    }
+    Sentry.init(options -> {
+      options.setDsn(dsn);
 
-    // set the git commit hash this was build on as the release
-    Properties gitProps = new Properties();
-    try {
-      gitProps.load(Launcher.class.getClassLoader().getResourceAsStream("git.properties"));
-    } catch (NullPointerException | IOException e) {
-      log.error("Failed to load git repo information", e);
-    }
+      if (!environment.isBlank()) {
+        options.setEnvironment(environment);
+      }
 
-    String commitHash = gitProps.getProperty("git.commit.id");
-    if (commitHash != null && !commitHash.isEmpty()) {
-      log.info("Setting sentry release to commit hash {}", commitHash);
-      sentryClient.setRelease(commitHash);
-    } else {
-      log.warn("No git commit hash found to set up sentry release");
-    }
+      if (tags != null && !tags.isEmpty()) {
+        tags.forEach(options::setTag);
+      }
+
+      // set the git commit hash this was build on as the release
+      Properties gitProps = new Properties();
+      try {
+        gitProps.load(Launcher.class.getClassLoader().getResourceAsStream("git.properties"));
+      } catch (NullPointerException | IOException e) {
+        log.error("Failed to load git repo information", e);
+      }
+
+      String commitHash = gitProps.getProperty("git.commit.id");
+      if (commitHash != null && !commitHash.isEmpty()) {
+        log.info("Setting sentry release to commit hash {}", commitHash);
+        options.setRelease(commitHash);
+      } else {
+        log.warn("No git commit hash found to set up sentry release");
+      }
+    });
 
     getSentryLogbackAppender().start();
   }
