@@ -50,19 +50,28 @@ constructor(private val serverConfig: ServerConfig, private val socketServer: So
     request: ServerHttpRequest, response: ServerHttpResponse, wsHandler: WebSocketHandler,
     attributes: Map<String, Any>
   ): Boolean {
-    val password = request.headers.getFirst("Authorization")
-    val matches = password == serverConfig.password
-
-    if (matches) {
-      log.info("Incoming connection from " + request.remoteAddress)
+    val matches = if (serverConfig.password.isNullOrBlank()) {
+      true
     } else {
-      log.error("Authentication failed from " + request.remoteAddress)
-      response.setStatusCode(HttpStatus.UNAUTHORIZED)
+      val password = request.headers.getFirst("Authorization")
+      val matches = password == serverConfig.password
+
+      if (matches) {
+        log.info("Incoming connection from " + request.remoteAddress)
+      } else {
+        log.error("Authentication failed from " + request.remoteAddress)
+        response.setStatusCode(HttpStatus.UNAUTHORIZED)
+      }
+
+      matches
     }
 
-    val resumeKey = request.headers.getFirst("Resume-Key")
-    val resuming = resumeKey != null && socketServer.canResume(resumeKey)
-    response.headers.add("Session-Resumed", resuming.toString())
+    /* no point in handling resuming if the password doesn't mach */
+    if (matches) {
+      val resumeKey = request.headers.getFirst("Resume-Key")
+      val resuming = resumeKey != null && socketServer.canResume(resumeKey)
+      response.headers.add("Session-Resumed", resuming.toString())
+    }
 
     return matches
   }
