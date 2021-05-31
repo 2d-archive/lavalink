@@ -12,18 +12,19 @@ repositories {
 }
 
 dependencies {
-  implementation ('net.dv8tion:JDA:4.1.1_135') {
+  implementation ('net.dv8tion:JDA:4.2.1_266') {
     exclude module: 'opus-java'
   }
 
-  implementation "com.github.FredBoat:Lavalink-Client:4.0"
+  implementation "com.github.FredBoat:Lavalink-Client:3ea4125238"
   implementation "ch.qos.logback:logback-classic:$logbackVersion"
   implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
 }
 
 compileKotlin {
-  kotlinOptions.jvmTarget = "1.8"
+  kotlinOptions.jvmTarget = "11"
 }
+
 compileTestKotlin {
-  kotlinOptions.jvmTarget = "1.8"
+  kotlinOptions.jvmTarget = "11"
 }

@@ -36,129 +36,137 @@ mainClassName = "lavalink.server.Launcher"
 version = "${versionFromTag()}".toString()
 
 ext {
-    moduleName = 'Lavalink-Server'
+  moduleName = 'Lavalink-Server'
 }
 
 bootJar {
-    archiveName = "Lavalink.jar"
+  archiveName = "Lavalink.jar"
 }
 
 sourceCompatibility = targetCompatibility = 11
 
 run {
-    //compiling tests during bootRun increases the likelihood of catching broken tests locally instead of on the CI
-    dependsOn compileTestJava
+  //compiling tests during bootRun increases the likelihood of catching broken tests locally instead of on the CI
+  dependsOn compileTestJava
 
-    //pass in custom jvm args
-    // source: https://stackoverflow.com/a/25079415
-    // example: ./gradlew bootRun -PjvmArgs="--illegal-access=debug -Dwhatever=value"
-    if (project.hasProperty('jvmArgs')) {
-        jvmArgs project.jvmArgs.split('\\s+')
-    }
+  //pass in custom jvm args
+  // source: https://stackoverflow.com/a/25079415
+  // example: ./gradlew bootRun -PjvmArgs="--illegal-access=debug -Dwhatever=value"
+  if (project.hasProperty('jvmArgs')) {
+    jvmArgs project.jvmArgs.split('\\s+')
+  }
 }
 
 dependencies {
-    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
+  implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
 
-    // Audio Sending
-    implementation group: 'moe.kyokobot.koe', name: 'ext-udpqueue', version: koeVersion
-    implementation (group: 'moe.kyokobot.koe', name: 'core', version: koeVersion) {
-        // This version of SLF4J does not recognise Logback 1.2.3
-        exclude group: "org.slf4j", module: "slf4j-api"
-    }
+  // Audio Sending
+  implementation(group: 'moe.kyokobot.koe', name: 'ext-udpqueue', version: koeVersion) {
+    exclude group: "com.sedmelluq", module: "lavaplayer"
+  }
+  implementation(group: 'moe.kyokobot.koe', name: 'core', version: koeVersion) {
+    // This version of SLF4J does not recognise Logback 1.2.3
+    exclude group: "org.slf4j", module: "slf4j-api"
+    exclude group: "com.sedmelluq", module: "lavaplayer"
+  }
 
-    // Transport
-    implementation "io.netty:netty-transport-native-epoll:$nettyEpollVersion:linux-x86_64"
+  // Transport
+  implementation "io.netty:netty-transport-native-epoll:$nettyEpollVersion:linux-x86_64"
 
-    // Audio Player
-    implementation group: 'com.sedmelluq', name: 'lavaplayer', version: lavaplayerVersion
-    implementation group: 'com.sedmelluq', name: 'lavaplayer-ext-youtube-rotator', version: lavaplayerIpRotatorVersion
+  // Audio Player
+  implementation group: 'com.sedmelluq', name: 'lavaplayer', version: lavaplayerVersion
+  implementation(group: 'com.sedmelluq', name: 'lavaplayer-ext-youtube-rotator', version: lavaplayerIpRotatorVersion) {
+    exclude group: "com.sedmelluq", module: "lavaplayer"
+  }
 
-    // Filters
-    implementation group: 'com.github.natanbc', name: 'lavadsp', version: lavaDspVersion
+  // Filters
+  implementation(group: 'com.github.natanbc', name: 'lavadsp', version: lavaDspVersion) {
+    exclude group: "com.sedmelluq", module: "lavaplayer"
+  }
 
-    // Spring
-    implementation group: 'org.springframework', name: 'spring-websocket', version: springWebSocketVersion
-    implementation(group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: springBootVersion) {
-        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-tomcat'
-    }
-    implementation group: 'org.springframework.boot', name: 'spring-boot-starter-undertow', version: springBootVersion
+  // Spring
+  implementation group: 'org.springframework', name: 'spring-websocket', version: springWebSocketVersion
+  implementation(group: 'org.springframework.boot', name: 'spring-boot-starter-web', version: springBootVersion) {
+    exclude group: 'org.springframework.boot', module: 'spring-boot-starter-tomcat'
+  }
+  implementation group: 'org.springframework.boot', name: 'spring-boot-starter-undertow', version: springBootVersion
 
-    // Logging and Statistics
-    implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
-    implementation group: 'io.sentry', name: 'sentry-logback', version: sentryLogbackVersion
-    implementation group: 'io.prometheus', name: 'simpleclient', version: prometheusVersion
-    implementation group: 'io.prometheus', name: 'simpleclient_hotspot', version: prometheusVersion
-    implementation group: 'io.prometheus', name: 'simpleclient_logback', version: prometheusVersion
-    implementation group: 'io.prometheus', name: 'simpleclient_servlet', version: prometheusVersion
+  // Logging and Statistics
+  implementation group: 'ch.qos.logback', name: 'logback-classic', version: logbackVersion
+  implementation group: 'io.sentry', name: 'sentry-logback', version: sentryLogbackVersion
+  implementation group: 'io.prometheus', name: 'simpleclient', version: prometheusVersion
+  implementation group: 'io.prometheus', name: 'simpleclient_hotspot', version: prometheusVersion
+  implementation group: 'io.prometheus', name: 'simpleclient_logback', version: prometheusVersion
+  implementation group: 'io.prometheus', name: 'simpleclient_servlet', version: prometheusVersion
 
-    // Native System Stuff
-    implementation group: 'com.github.oshi', name: 'oshi-core', version: oshiVersion
+  // Native System Stuff
+  implementation group: 'com.github.oshi', name: 'oshi-core', version: oshiVersion
 
-    // idk Json
-    implementation group: 'org.json', name: 'json', version: jsonOrgVersion
-    implementation group: 'com.google.code.gson', name: 'gson', version: gsonVersion
+  // idk Json
+  implementation group: 'org.json', name: 'json', version: jsonOrgVersion
+  implementation group: 'com.google.code.gson', name: 'gson', version: gsonVersion
 
-    // Idk test stuff?
-    compileOnly group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: spotbugsAnnotationsVersion
-    testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: springBootVersion
+  // Idk test stuff?
+  compileOnly group: 'com.github.spotbugs', name: 'spotbugs-annotations', version: spotbugsAnnotationsVersion
+  testImplementation group: 'org.springframework.boot', name: 'spring-boot-starter-test', version: springBootVersion
 }
 
 processResources {
-    //inject values into app.properties
-    filesMatching("**/app.properties") {
-        filter ReplaceTokens, tokens: [
-                "project.version"   : project.version,
-                "project.groupId"   : project.group,
-                "project.artifactId": project.ext.moduleName,
-                "env.BUILD_NUMBER"  : (System.getenv('CI') ? System.getenv('BUILD_NUMBER') : 'Unofficial'),
-                "env.BUILD_TIME"    : System.currentTimeMillis() + ''
-        ]
-    }
+  //inject values into app.properties
+  filesMatching("**/app.properties") {
+    filter ReplaceTokens, tokens: [
+      "project.version"   : project.version,
+      "project.groupId"   : project.group,
+      "project.artifactId": project.ext.moduleName,
+      "env.BUILD_NUMBER"  : (System.getenv('CI') ? System.getenv('BUILD_NUMBER') : 'Unofficial'),
+      "env.BUILD_TIME"    : System.currentTimeMillis() + ''
+    ]
+  }
 }
 
 build {
-    doLast {
-        println 'Version: ' + version
-    }
+  doLast {
+    println 'Version: ' + version
+  }
 }
 
 compileKotlin {
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
+  kotlinOptions {
+    jvmTarget = "11"
+
+  }
 }
 compileTestKotlin {
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
+  kotlinOptions {
+    jvmTarget = "11"
+  }
 }
 
 @SuppressWarnings("GrMethodMayBeStatic")
 String versionFromTag() {
 
-    def headTag = grgit.tag.list().find {
-        it.commit.getId() == grgit.head().getId()
-    }
+  def headTag = grgit.tag.list().find {
+    it.commit.getId() == grgit.head().getId()
+  }
 
-    // Uncommitted changes? -> should be SNAPSHOT
-    // Also watch out for false positives in the CI build
-    def clean = grgit.status().clean || System.getenv('CI') != null
+  // Uncommitted changes? -> should be SNAPSHOT
+  // Also watch out for false positives in the CI build
+  def clean = grgit.status().clean || System.getenv('CI') != null
 
-    if (!clean) {
-        println("Git state is dirty, setting version as snapshot")
-    }
+  if (!clean) {
+    println("Git state is dirty, setting version as snapshot")
+  }
 
-    if (headTag && clean) {
-        headTag.getName()
-    } else {
-        "${grgit.head().id}-SNAPSHOT"
-    }
+  if (headTag && clean) {
+    headTag.getName()
+  } else {
+    "${grgit.head().id}-SNAPSHOT"
+  }
 }
 
 //create a simple version file that we will be reading to create appropriate docker tags
 void versionTxt() {
-    new File("$projectDir/VERSION.txt").text = "$project.version\n"
+  new File("$projectDir/VERSION.txt").text = "$project.version\n"
 }
 
 versionTxt()
