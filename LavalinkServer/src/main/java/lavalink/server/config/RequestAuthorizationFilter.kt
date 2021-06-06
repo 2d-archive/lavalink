@@ -62,7 +62,7 @@ class RequestAuthorizationFilter(
 
       else -> {
         val authorization = request.getHeader("Authorization")
-        if (authorization?.takeUnless { it == serverConfig.password } == null) {
+        if (authorization?.takeIf { it == serverConfig.password } == null) {
           /* check if the authorization is missing or just incorrect. */
           val missing = authorization == null
 
