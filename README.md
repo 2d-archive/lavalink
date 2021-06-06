@@ -14,7 +14,7 @@ structure, or you might be at risk to ip bans.
 1. Install Java 13 or higher, I recommend using [sdkman](https://sdkman.io) for
    downloading and installing JDKs
 2. Download the latest jar file from the
-   [releases](https://github.com/melike2d/releases)
+   [releases](https://github.com/melike2d/lavalink/releases)
 3. Start the lavalink server
    1. With docker:
       <https://github.com/melike2d/lavalink/blob/dev/LavalinkServer/docker/Dockerfile>
