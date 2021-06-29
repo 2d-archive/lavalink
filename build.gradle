@@ -58,6 +58,7 @@ subprojects {
     koeVersion                 = '1864a8b803'
     lavaDspVersion             = '0.7.7'
     nettyEpollVersion          = "4.1.65.Final"
+    udpQueueVersion            = "1.1.1-linux64"
 
     springBootVersion          = "${springBootVersion}"
     springWebSocketVersion     = '5.3.7'

@@ -61,8 +61,10 @@ dependencies {
   implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlinVersion
 
   // Audio Sending
+  implementation group: "com.sedmelluq", name: "udp-queue", version: udpQueueVersion
   implementation(group: 'moe.kyokobot.koe', name: 'ext-udpqueue', version: koeVersion) {
     exclude group: "com.sedmelluq", module: "lavaplayer"
+    exclude group: "com.sedmelluq", module: "udp-queue"
   }
   implementation(group: 'moe.kyokobot.koe', name: 'core', version: koeVersion) {
     // This version of SLF4J does not recognise Logback 1.2.3
