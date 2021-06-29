@@ -80,7 +80,7 @@ object Util {
   }
 
   /**
-   * Convenience method for creatina a [ByteArrayOutputStream] and then closing it.
+   * Convenience method for creatina an auto-closing [ByteArrayOutputStream].
    *
    * @param block
    */
@@ -90,7 +90,7 @@ object Util {
   }
 
   /**
-   * Convenience method for creating a [ByteArrayInputStream] and then closing it
+   * Convenience method for creating an auto-closing [ByteArrayInputStream].
    *
    * @param block
    */
