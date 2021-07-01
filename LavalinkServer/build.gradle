@@ -132,6 +132,10 @@ build {
   }
 }
 
+test {
+  useJUnitPlatform()
+}
+
 compileKotlin {
   kotlinOptions {
     jvmTarget = "11"
