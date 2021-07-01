@@ -40,7 +40,7 @@ ext {
 }
 
 bootJar {
-  archiveName = "Lavalink.jar"
+  archiveFileName = "Lavalink.jar"
 }
 
 sourceCompatibility = targetCompatibility = 11
