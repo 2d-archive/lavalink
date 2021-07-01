@@ -32,6 +32,6 @@ import org.springframework.stereotype.Component;
 @Component
 @ConfigurationProperties("metrics.prometheus")
 class MetricsPrometheusConfigProperties {
-  val enabled = false;
-  val endpoint: String = "";
+  var enabled = false;
+  var endpoint: String = "";
 }
