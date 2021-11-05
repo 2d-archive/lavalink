@@ -27,7 +27,6 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.filter.ThresholdFilter;
 import io.sentry.Sentry;
-import io.sentry.SentryClient;
 import io.sentry.logback.SentryAppender;
 import lavalink.server.Launcher;
 import org.slf4j.Logger;
@@ -45,90 +44,90 @@ import java.util.Properties;
 @Configuration
 public class SentryConfiguration {
 
-  private static final Logger log = LoggerFactory.getLogger(SentryConfiguration.class);
-  private static final String SENTRY_APPENDER_NAME = "SENTRY";
+    private static final Logger log = LoggerFactory.getLogger(SentryConfiguration.class);
+    private static final String SENTRY_APPENDER_NAME = "SENTRY";
 
-  public SentryConfiguration(ServerConfig serverConfig, SentryConfigProperties sentryConfig) {
+    public SentryConfiguration(ServerConfig serverConfig, SentryConfigProperties sentryConfig) {
 
-    String dsn = sentryConfig.getDsn();
-    boolean warnDeprecatedDsnConfig = false;
-    if (dsn == null || dsn.isEmpty()) {
-      //try deprecated config location
-      //noinspection deprecation
-      dsn = serverConfig.getSentryDsn();
-      warnDeprecatedDsnConfig = true;
+        String dsn = sentryConfig.getDsn();
+        boolean warnDeprecatedDsnConfig = false;
+        if (dsn == null || dsn.isEmpty()) {
+            //try deprecated config location
+            //noinspection deprecation
+            dsn = serverConfig.getSentryDsn();
+            warnDeprecatedDsnConfig = true;
+        }
+
+        if (!dsn.isEmpty()) {
+            turnOn(dsn, sentryConfig.getTags(), sentryConfig.getEnvironment());
+            if (warnDeprecatedDsnConfig) {
+                log.warn("Please update the location of the sentry dsn in lavalinks config file / your environment "
+                    + "vars, it is now located under 'sentry.dsn' instead of 'lavalink.server.sentryDsn'.");
+            }
+        } else {
+            turnOff();
+        }
     }
 
-    if (!dsn.isEmpty()) {
-      turnOn(dsn, sentryConfig.getTags(), sentryConfig.getEnvironment());
-      if (warnDeprecatedDsnConfig) {
-        log.warn("Please update the location of the sentry dsn in lavalinks config file / your environment "
-          + "vars, it is now located under 'sentry.dsn' instead of 'lavalink.server.sentryDsn'.");
-      }
-    } else {
-      turnOff();
+    //programmatically creates a sentry appender
+    private static synchronized SentryAppender getSentryLogbackAppender() {
+        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+        ch.qos.logback.classic.Logger root = loggerContext.getLogger(Logger.ROOT_LOGGER_NAME);
+
+        SentryAppender sentryAppender = (SentryAppender) root.getAppender(SENTRY_APPENDER_NAME);
+        if (sentryAppender == null) {
+            sentryAppender = new SentryAppender();
+            sentryAppender.setName(SENTRY_APPENDER_NAME);
+
+            ThresholdFilter warningsOrAboveFilter = new ThresholdFilter();
+            warningsOrAboveFilter.setLevel(Level.WARN.levelStr);
+            warningsOrAboveFilter.start();
+            sentryAppender.addFilter(warningsOrAboveFilter);
+
+            sentryAppender.setContext(loggerContext);
+            root.addAppender(sentryAppender);
+        }
+        return sentryAppender;
     }
-  }
 
-  //programmatically creates a sentry appender
-  private static synchronized SentryAppender getSentryLogbackAppender() {
-    LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-    ch.qos.logback.classic.Logger root = loggerContext.getLogger(Logger.ROOT_LOGGER_NAME);
+    public void turnOn(String dsn, Map<String, String> tags, String environment) {
+        log.info("Turning on sentry");
 
-    SentryAppender sentryAppender = (SentryAppender) root.getAppender(SENTRY_APPENDER_NAME);
-    if (sentryAppender == null) {
-      sentryAppender = new SentryAppender();
-      sentryAppender.setName(SENTRY_APPENDER_NAME);
+        Sentry.init(options -> {
+            options.setDsn(dsn);
 
-      ThresholdFilter warningsOrAboveFilter = new ThresholdFilter();
-      warningsOrAboveFilter.setLevel(Level.WARN.levelStr);
-      warningsOrAboveFilter.start();
-      sentryAppender.addFilter(warningsOrAboveFilter);
+            if (!environment.isBlank()) {
+                options.setEnvironment(environment);
+            }
 
-      sentryAppender.setContext(loggerContext);
-      root.addAppender(sentryAppender);
+            if (tags != null && !tags.isEmpty()) {
+                tags.forEach(options::setTag);
+            }
+
+            // set the git commit hash this was build on as the release
+            Properties gitProps = new Properties();
+            try {
+                gitProps.load(Launcher.class.getClassLoader().getResourceAsStream("git.properties"));
+            } catch (NullPointerException | IOException e) {
+                log.error("Failed to load git repo information", e);
+            }
+
+            String commitHash = gitProps.getProperty("git.commit.id");
+            if (commitHash != null && !commitHash.isEmpty()) {
+                log.info("Setting sentry release to commit hash {}", commitHash);
+                options.setRelease(commitHash);
+            } else {
+                log.warn("No git commit hash found to set up sentry release");
+            }
+        });
+
+        getSentryLogbackAppender().start();
     }
-    return sentryAppender;
-  }
 
-  public void turnOn(String dsn, Map<String, String> tags, String environment) {
-    log.info("Turning on sentry");
-
-    Sentry.init(options -> {
-      options.setDsn(dsn);
-
-      if (!environment.isBlank()) {
-        options.setEnvironment(environment);
-      }
-
-      if (tags != null && !tags.isEmpty()) {
-        tags.forEach(options::setTag);
-      }
-
-      // set the git commit hash this was build on as the release
-      Properties gitProps = new Properties();
-      try {
-        gitProps.load(Launcher.class.getClassLoader().getResourceAsStream("git.properties"));
-      } catch (NullPointerException | IOException e) {
-        log.error("Failed to load git repo information", e);
-      }
-
-      String commitHash = gitProps.getProperty("git.commit.id");
-      if (commitHash != null && !commitHash.isEmpty()) {
-        log.info("Setting sentry release to commit hash {}", commitHash);
-        options.setRelease(commitHash);
-      } else {
-        log.warn("No git commit hash found to set up sentry release");
-      }
-    });
-
-    getSentryLogbackAppender().start();
-  }
-
-  public void turnOff() {
-    log.warn("Turning off sentry");
-    Sentry.close();
-    getSentryLogbackAppender().stop();
-  }
+    public void turnOff() {
+        log.warn("Turning off sentry");
+        Sentry.close();
+        getSentryLogbackAppender().stop();
+    }
 
 }

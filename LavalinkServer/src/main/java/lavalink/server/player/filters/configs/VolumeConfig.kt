@@ -28,11 +28,11 @@ import com.sedmelluq.discord.lavaplayer.filter.FloatPcmAudioFilter
 import com.sedmelluq.discord.lavaplayer.format.AudioDataFormat
 
 class VolumeConfig(private var volume: Float) : FilterConfig() {
-  override fun build(format: AudioDataFormat, output: FloatPcmAudioFilter): FloatPcmAudioFilter {
-    return VolumePcmAudioFilter(output).also {
-      it.volume = volume
+    override fun build(format: AudioDataFormat, output: FloatPcmAudioFilter): FloatPcmAudioFilter {
+        return VolumePcmAudioFilter(output).also {
+            it.volume = volume
+        }
     }
-  }
 
-  override fun isEnabled(): Boolean = isSet(volume, 1.0f)
+    override fun isEnabled(): Boolean = isSet(volume, 1.0f)
 }

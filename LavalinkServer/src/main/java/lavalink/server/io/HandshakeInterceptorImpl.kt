@@ -37,49 +37,49 @@ import org.springframework.web.socket.server.HandshakeInterceptor
 class HandshakeInterceptorImpl @Autowired
 constructor(private val serverConfig: ServerConfig, private val socketServer: SocketServer) : HandshakeInterceptor {
 
-  companion object {
-    private val log = LoggerFactory.getLogger(HandshakeInterceptorImpl::class.java)
-  }
-
-  /**
-   * Checks credentials and sets the Lavalink version header
-   *
-   * @return true if authenticated
-   */
-  override fun beforeHandshake(
-    request: ServerHttpRequest, response: ServerHttpResponse, wsHandler: WebSocketHandler,
-    attributes: Map<String, Any>
-  ): Boolean {
-    val matches = if (serverConfig.password.isNullOrBlank()) {
-      true
-    } else {
-      val password = request.headers.getFirst("Authorization")
-      val matches = password == serverConfig.password
-
-      if (matches) {
-        log.info("Incoming connection from " + request.remoteAddress)
-      } else {
-        log.error("Authentication failed from " + request.remoteAddress)
-        response.setStatusCode(HttpStatus.UNAUTHORIZED)
-      }
-
-      matches
+    companion object {
+        private val log = LoggerFactory.getLogger(HandshakeInterceptorImpl::class.java)
     }
 
-    /* no point in handling resuming if the password doesn't mach */
-    if (matches) {
-      val resumeKey = request.headers.getFirst("Resume-Key")
-      val resuming = resumeKey != null && socketServer.canResume(resumeKey)
-      response.headers.add("Session-Resumed", resuming.toString())
+    /**
+     * Checks credentials and sets the Lavalink version header
+     *
+     * @return true if authenticated
+     */
+    override fun beforeHandshake(
+        request: ServerHttpRequest, response: ServerHttpResponse, wsHandler: WebSocketHandler,
+        attributes: Map<String, Any>
+    ): Boolean {
+        val matches = if (serverConfig.password.isNullOrBlank()) {
+            true
+        } else {
+            val password = request.headers.getFirst("Authorization")
+            val matches = password == serverConfig.password
+
+            if (matches) {
+                log.info("Incoming connection from " + request.remoteAddress)
+            } else {
+                log.error("Authentication failed from " + request.remoteAddress)
+                response.setStatusCode(HttpStatus.UNAUTHORIZED)
+            }
+
+            matches
+        }
+
+        /* no point in handling resuming if the password doesn't mach */
+        if (matches) {
+            val resumeKey = request.headers.getFirst("Resume-Key")
+            val resuming = resumeKey != null && socketServer.canResume(resumeKey)
+            response.headers.add("Session-Resumed", resuming.toString())
+        }
+
+        return matches
     }
 
-    return matches
-  }
-
-  // No action required
-  override fun afterHandshake(
-    request: ServerHttpRequest, response: ServerHttpResponse, wsHandler: WebSocketHandler,
-    exception: Exception?
-  ) {
-  }
+    // No action required
+    override fun afterHandshake(
+        request: ServerHttpRequest, response: ServerHttpResponse, wsHandler: WebSocketHandler,
+        exception: Exception?
+    ) {
+    }
 }

@@ -39,55 +39,55 @@ import java.util.Properties;
 @Component
 public class AppInfo {
 
-  private static final Logger log = LoggerFactory.getLogger(AppInfo.class);
+    private static final Logger log = LoggerFactory.getLogger(AppInfo.class);
 
-  private final String version;
-  private final String groupId;
-  private final String artifactId;
-  private final String buildNumber;
-  private final long buildTime;
+    private final String version;
+    private final String groupId;
+    private final String artifactId;
+    private final String buildNumber;
+    private final long buildTime;
 
-  public AppInfo() {
-    InputStream resourceAsStream = this.getClass().getResourceAsStream("/app.properties");
-    Properties prop = new Properties();
-    try {
-      prop.load(resourceAsStream);
-    } catch (IOException e) {
-      log.error("Failed to load app.properties", e);
+    public AppInfo() {
+        InputStream resourceAsStream = this.getClass().getResourceAsStream("/app.properties");
+        Properties prop = new Properties();
+        try {
+            prop.load(resourceAsStream);
+        } catch (IOException e) {
+            log.error("Failed to load app.properties", e);
+        }
+        this.version = prop.getProperty("version");
+        this.groupId = prop.getProperty("groupId");
+        this.artifactId = prop.getProperty("artifactId");
+        this.buildNumber = prop.getProperty("buildNumber");
+        long bTime = -1L;
+        try {
+            bTime = Long.parseLong(prop.getProperty("buildTime"));
+        } catch (NumberFormatException ignored) {
+        }
+        this.buildTime = bTime;
     }
-    this.version = prop.getProperty("version");
-    this.groupId = prop.getProperty("groupId");
-    this.artifactId = prop.getProperty("artifactId");
-    this.buildNumber = prop.getProperty("buildNumber");
-    long bTime = -1L;
-    try {
-      bTime = Long.parseLong(prop.getProperty("buildTime"));
-    } catch (NumberFormatException ignored) {
+
+    public String getVersion() {
+        return this.version;
     }
-    this.buildTime = bTime;
-  }
 
-  public String getVersion() {
-    return this.version;
-  }
+    public String getGroupId() {
+        return this.groupId;
+    }
 
-  public String getGroupId() {
-    return this.groupId;
-  }
+    public String getArtifactId() {
+        return this.artifactId;
+    }
 
-  public String getArtifactId() {
-    return this.artifactId;
-  }
+    public String getBuildNumber() {
+        return this.buildNumber;
+    }
 
-  public String getBuildNumber() {
-    return this.buildNumber;
-  }
+    public long getBuildTime() {
+        return this.buildTime;
+    }
 
-  public long getBuildTime() {
-    return this.buildTime;
-  }
-
-  public String getVersionBuild() {
-    return this.version + "_" + this.buildNumber;
-  }
+    public String getVersionBuild() {
+        return this.version + "_" + this.buildNumber;
+    }
 }

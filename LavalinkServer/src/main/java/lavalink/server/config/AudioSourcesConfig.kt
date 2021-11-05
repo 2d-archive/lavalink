@@ -30,12 +30,12 @@ import org.springframework.stereotype.Component
 @Component
 object AudioSourcesConfig {
 
-  var youtube: Boolean = true
-  var bandcamp: Boolean = true
-  var soundcloud: Boolean = true
-  var twitch: Boolean = true
-  var vimeo: Boolean = true
-  var http: Boolean = true
-  var local: Boolean = false
+    var youtube: Boolean = true
+    var bandcamp: Boolean = true
+    var soundcloud: Boolean = true
+    var twitch: Boolean = true
+    var vimeo: Boolean = true
+    var http: Boolean = true
+    var local: Boolean = false
 
 }

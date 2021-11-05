@@ -40,158 +40,158 @@ import java.util.concurrent.ConcurrentHashMap
 
 @Service
 class SocketServer(
-  private val serverConfig: ServerConfig,
-  private val audioPlayerManager: AudioPlayerManager,
-  koeOptions: KoeOptions
+    private val serverConfig: ServerConfig,
+    private val audioPlayerManager: AudioPlayerManager,
+    koeOptions: KoeOptions
 ) : TextWebSocketHandler() {
 
-  // userId <-> shardCount
-  val contextMap = ConcurrentHashMap<String, SocketContext>()
+    // userId <-> shardCount
+    val contextMap = ConcurrentHashMap<String, SocketContext>()
 
-  @Suppress("LeakingThis")
-  private val handlers = WebSocketHandlers(contextMap)
-  private val resumableSessions = mutableMapOf<String, SocketContext>()
-  private val koe = Koe.koe(koeOptions)
+    @Suppress("LeakingThis")
+    private val handlers = WebSocketHandlers()
+    private val resumableSessions = mutableMapOf<String, SocketContext>()
+    private val koe = Koe.koe(koeOptions)
 
-  init {
-    if (Util.isTimescaleLoaded()) {
-      log.info("Timescale natives loaded successfully.")
-    } else {
-      log.info("Timescale natives failed to load, the timescale filter won't work.")
-    }
-  }
-
-  val contexts: Collection<SocketContext>
-    get() = contextMap.values
-
-  override fun afterConnectionEstablished(session: WebSocketSession) {
-    val userId = session.handshakeHeaders.getFirst("User-Id")!!
-    val resumeKey = session.handshakeHeaders.getFirst("Resume-Key")
-    val clientName = session.handshakeHeaders.getFirst("Client-Name")
-    val userAgent = session.handshakeHeaders.getFirst("User-Agent")
-
-    var resumable: SocketContext? = null
-    if (resumeKey != null) resumable = resumableSessions.remove(resumeKey)
-
-    if (resumable != null) {
-      contextMap[session.id] = resumable
-      resumable.resume(session)
-      log.info("Resumed session with key $resumeKey")
-      return
+    init {
+        if (Util.isTimescaleLoaded()) {
+            log.info("Timescale natives loaded successfully.")
+        } else {
+            log.info("Timescale natives failed to load, the timescale filter won't work.")
+        }
     }
 
-    contextMap[session.id] = SocketContext(
-      audioPlayerManager,
-      serverConfig,
-      session,
-      this,
-      userId,
-      koe.newClient(userId.toLong())
-    )
+    val contexts: Collection<SocketContext>
+        get() = contextMap.values
 
-    if (clientName != null) {
-      log.info("Connection successfully established from $clientName")
-      return
-    }
+    override fun afterConnectionEstablished(session: WebSocketSession) {
+        val userId = session.handshakeHeaders.getFirst("User-Id")!!
+        val resumeKey = session.handshakeHeaders.getFirst("Resume-Key")
+        val clientName = session.handshakeHeaders.getFirst("Client-Name")
+        val userAgent = session.handshakeHeaders.getFirst("User-Agent")
 
-    log.info("Connection successfully established")
-    if (userAgent != null) {
-      log.warn("Library developers: Please specify a 'Client-Name' header. User agent: $userAgent")
-    } else {
-      log.warn("Library developers: Please specify a 'Client-Name' header.")
-    }
-  }
+        var resumable: SocketContext? = null
+        if (resumeKey != null) resumable = resumableSessions.remove(resumeKey)
 
-  override fun afterConnectionClosed(session: WebSocketSession?, status: CloseStatus?) {
-    val context = contextMap.remove(session!!.id) ?: return
-    if (context.resumeKey != null) {
-      resumableSessions.remove(context.resumeKey!!)?.let { removed ->
-        log.warn(
-          "Shutdown resumable session with key ${removed.resumeKey} because it has the same key as a " +
-            "newly disconnected resumable session."
+        if (resumable != null) {
+            contextMap[session.id] = resumable
+            resumable.resume(session)
+            log.info("Resumed session with key $resumeKey")
+            return
+        }
+
+        contextMap[session.id] = SocketContext(
+            audioPlayerManager,
+            serverConfig,
+            session,
+            this,
+            userId,
+            koe.newClient(userId.toLong())
         )
-        removed.shutdown()
-      }
 
-      resumableSessions[context.resumeKey!!] = context
-      context.pause()
-      log.info(
-        "Connection closed from {} with status {} -- " +
-          "Session can be resumed within the next {} seconds with key {}",
-        session.remoteAddress,
-        status,
-        context.resumeTimeout,
-        context.resumeKey
-      )
-      return
+        if (clientName != null) {
+            log.info("Connection successfully established from $clientName")
+            return
+        }
+
+        log.info("Connection successfully established")
+        if (userAgent != null) {
+            log.warn("Library developers: Please specify a 'Client-Name' header. User agent: $userAgent")
+        } else {
+            log.warn("Library developers: Please specify a 'Client-Name' header.")
+        }
     }
 
-    log.info("Connection closed from {} -- {}", session.remoteAddress, status)
+    override fun afterConnectionClosed(session: WebSocketSession?, status: CloseStatus?) {
+        val context = contextMap.remove(session!!.id) ?: return
+        if (context.resumeKey != null) {
+            resumableSessions.remove(context.resumeKey!!)?.let { removed ->
+                log.warn(
+                    "Shutdown resumable session with key ${removed.resumeKey} because it has the same key as a " +
+                        "newly disconnected resumable session."
+                )
+                removed.shutdown()
+            }
 
-    context.shutdown()
-  }
+            resumableSessions[context.resumeKey!!] = context
+            context.pause()
+            log.info(
+                "Connection closed from {} with status {} -- " +
+                    "Session can be resumed within the next {} seconds with key {}",
+                session.remoteAddress,
+                status,
+                context.resumeTimeout,
+                context.resumeKey
+            )
+            return
+        }
 
-  override fun handleTextMessage(session: WebSocketSession?, message: TextMessage?) {
-    try {
-      handleTextMessageSafe(session!!, message!!)
-    } catch (e: Exception) {
-      log.error("Exception while handling websocket message", e)
+        log.info("Connection closed from {} -- {}", session.remoteAddress, status)
+
+        context.shutdown()
     }
 
-  }
+    override fun handleTextMessage(session: WebSocketSession?, message: TextMessage?) {
+        try {
+            handleTextMessageSafe(session!!, message!!)
+        } catch (e: Exception) {
+            log.error("Exception while handling websocket message", e)
+        }
 
-  private fun handleTextMessageSafe(session: WebSocketSession, message: TextMessage) {
-    val json = JSONObject(message.payload)
-
-    log.info(message.payload)
-
-    if (!session.isOpen) {
-      log.error("Ignoring closing websocket: " + session.remoteAddress!!)
-      return
     }
 
-    val context = contextMap[session.id]
-      ?: throw IllegalStateException("No context for session ID ${session.id}. Broken websocket?")
+    private fun handleTextMessageSafe(session: WebSocketSession, message: TextMessage) {
+        val json = JSONObject(message.payload)
 
-    when (json.getString("op")) {
-      // @formatter:off
-      "voiceUpdate" -> handlers.voiceUpdate(context, json)
-      "play" -> handlers.play(context, json)
-      "stop" -> handlers.stop(context, json)
-      "pause" -> handlers.pause(context, json)
-      "seek" -> handlers.seek(context, json)
-      "volume" -> handlers.volume(context, json)
-      "destroy" -> handlers.destroy(context, json)
-      "configureResuming" -> handlers.configureResuming(context, json)
-      "equalizer" -> handlers.equalizer(context, json)
-      "filters" -> handlers.filters(context, json.getString("guildId"), message.payload)
-      else -> log.warn("Unexpected operation: " + json.getString("op"))
-      // @formatter:on
+        log.info(message.payload)
+
+        if (!session.isOpen) {
+            log.error("Ignoring closing websocket: " + session.remoteAddress!!)
+            return
+        }
+
+        val context = contextMap[session.id]
+            ?: throw IllegalStateException("No context for session ID ${session.id}. Broken websocket?")
+
+        when (json.getString("op")) {
+            // @formatter:off
+            "voiceUpdate" -> handlers.voiceUpdate(context, json)
+            "play" -> handlers.play(context, json)
+            "stop" -> handlers.stop(context, json)
+            "pause" -> handlers.pause(context, json)
+            "seek" -> handlers.seek(context, json)
+            "volume" -> handlers.volume(context, json)
+            "destroy" -> handlers.destroy(context, json)
+            "configureResuming" -> handlers.configureResuming(context, json)
+            "equalizer" -> handlers.equalizer(context, json)
+            "filters" -> handlers.filters(context, json.getString("guildId"), message.payload)
+            else -> log.warn("Unexpected operation: " + json.getString("op"))
+            // @formatter:on
+        }
     }
-  }
 
-  internal fun onSessionResumeTimeout(context: SocketContext) {
-    resumableSessions.remove(context.resumeKey)
-    context.shutdown()
-  }
-
-  internal fun canResume(key: String) = resumableSessions[key]?.stopResumeTimeout()
-    ?: false
-
-  companion object {
-    private val log = LoggerFactory.getLogger(SocketServer::class.java)
-
-    fun sendPlayerUpdate(socketContext: SocketContext, player: Player) {
-      val state = player.state
-      val connected = socketContext.getMediaConnection(player).gatewayConnection?.isOpen == true
-      state.put("connected", connected)
-
-      val json = JSONObject()
-      json.put("op", "playerUpdate")
-      json.put("guildId", player.guildId)
-      json.put("state", player.state)
-
-      socketContext.send(json)
+    internal fun onSessionResumeTimeout(context: SocketContext) {
+        resumableSessions.remove(context.resumeKey)
+        context.shutdown()
     }
-  }
+
+    internal fun canResume(key: String) = resumableSessions[key]?.stopResumeTimeout()
+        ?: false
+
+    companion object {
+        private val log = LoggerFactory.getLogger(SocketServer::class.java)
+
+        fun sendPlayerUpdate(socketContext: SocketContext, player: Player) {
+            val state = player.state
+            val connected = socketContext.getMediaConnection(player).gatewayConnection?.isOpen == true
+            state.put("connected", connected)
+
+            val json = JSONObject()
+            json.put("op", "playerUpdate")
+            json.put("guildId", player.guildId)
+            json.put("state", player.state)
+
+            socketContext.send(json)
+        }
+    }
 }

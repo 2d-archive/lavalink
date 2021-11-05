@@ -42,117 +42,117 @@ import java.util.concurrent.CompletionStage;
 @RestController
 public class AudioLoaderRestHandler {
 
-  private static final Logger log = LoggerFactory.getLogger(AudioLoaderRestHandler.class);
-  private final AudioPlayerManager audioPlayerManager;
+    private static final Logger log = LoggerFactory.getLogger(AudioLoaderRestHandler.class);
+    private final AudioPlayerManager audioPlayerManager;
 
-  public AudioLoaderRestHandler(AudioPlayerManager audioPlayerManager) {
-    this.audioPlayerManager = audioPlayerManager;
-  }
-
-  private void log(HttpServletRequest request) {
-    String path = request.getServletPath();
-    log.info("GET " + path);
-  }
-
-  private JSONObject trackToJSON(AudioTrack audioTrack) {
-    AudioTrackInfo trackInfo = audioTrack.getInfo();
-
-    return new JSONObject()
-      .put("title", trackInfo.title)
-      .put("author", trackInfo.author)
-      .put("length", trackInfo.length)
-      .put("identifier", trackInfo.identifier)
-      .put("uri", trackInfo.uri)
-      .put("isStream", trackInfo.isStream)
-      .put("isSeekable", audioTrack.isSeekable())
-      .put("source", audioTrack.getSourceManager().getSourceName())
-      .put("position", audioTrack.getPosition())
-      // freyacodes/lavaplayer@97424f0
-      .put("sourceName", audioTrack.getSourceManager() == null ? null : audioTrack.getSourceManager().getSourceName());
-  }
-
-  private JSONObject encodeLoadResult(LoadResult result) {
-    JSONObject json = new JSONObject();
-    JSONObject playlist = new JSONObject();
-    JSONArray tracks = new JSONArray();
-
-    result.tracks.forEach(track -> {
-      JSONObject object = new JSONObject();
-      object.put("info", trackToJSON(track));
-
-      try {
-        String encoded = Util.encodeAudioTrack(audioPlayerManager, track);
-        object.put("track", encoded);
-        tracks.put(object);
-      } catch (IOException e) {
-        log.warn("Failed to encode a track {}, skipping", track.getIdentifier(), e);
-      }
-    });
-
-    playlist.put("name", result.playlistName);
-    playlist.put("selectedTrack", result.selectedTrack);
-
-    json.put("playlistInfo", playlist);
-    json.put("loadType", result.loadResultType);
-    json.put("tracks", tracks);
-
-    if (result.loadResultType == ResultStatus.LOAD_FAILED && result.exception != null) {
-      JSONObject exception = new JSONObject();
-      exception.put("message", result.exception.getLocalizedMessage());
-      exception.put("severity", result.exception.severity.toString());
-
-      json.put("exception", exception);
-      log.error("Track loading failed", result.exception);
+    public AudioLoaderRestHandler(AudioPlayerManager audioPlayerManager) {
+        this.audioPlayerManager = audioPlayerManager;
     }
 
-    return json;
-  }
-
-  @GetMapping(value = "/loadtracks", produces = "application/json")
-  @ResponseBody
-  public CompletionStage<ResponseEntity<String>> getLoadTracks(
-    @RequestParam String identifier) {
-    log.info("Got request to load for identifier \"{}\"", identifier);
-
-    return new AudioLoader(audioPlayerManager).load(identifier)
-      .thenApply(this::encodeLoadResult)
-      .thenApply(loadResultJson -> new ResponseEntity<>(loadResultJson.toString(), HttpStatus.OK));
-  }
-
-  @GetMapping(value = "/decodetrack", produces = "application/json")
-  @ResponseBody
-  public ResponseEntity<String> getDecodeTrack(HttpServletRequest request, @RequestParam String track)
-    throws IOException {
-
-    log(request);
-
-    AudioTrack audioTrack = Util.decodeAudioTrack(audioPlayerManager, track);
-
-    return new ResponseEntity<>(trackToJSON(audioTrack).toString(), HttpStatus.OK);
-  }
-
-  @PostMapping(value = "/decodetracks", consumes = "application/json", produces = "application/json")
-  @ResponseBody
-  public ResponseEntity<String> postDecodeTracks(HttpServletRequest request, @RequestBody String body)
-    throws IOException {
-
-    log(request);
-
-    JSONArray requestJSON = new JSONArray(body);
-    JSONArray responseJSON = new JSONArray();
-
-    for (int i = 0; i < requestJSON.length(); i++) {
-      String track = requestJSON.getString(i);
-      AudioTrack audioTrack = Util.decodeAudioTrack(audioPlayerManager, track);
-
-      JSONObject infoJSON = trackToJSON(audioTrack);
-      JSONObject trackJSON = new JSONObject()
-        .put("track", track)
-        .put("info", infoJSON);
-
-      responseJSON.put(trackJSON);
+    private void log(HttpServletRequest request) {
+        String path = request.getServletPath();
+        log.info("GET " + path);
     }
 
-    return new ResponseEntity<>(responseJSON.toString(), HttpStatus.OK);
-  }
+    private JSONObject trackToJSON(AudioTrack audioTrack) {
+        AudioTrackInfo trackInfo = audioTrack.getInfo();
+
+        return new JSONObject()
+            .put("title", trackInfo.title)
+            .put("author", trackInfo.author)
+            .put("length", trackInfo.length)
+            .put("identifier", trackInfo.identifier)
+            .put("uri", trackInfo.uri)
+            .put("isStream", trackInfo.isStream)
+            .put("isSeekable", audioTrack.isSeekable())
+            .put("source", audioTrack.getSourceManager().getSourceName())
+            .put("position", audioTrack.getPosition())
+            // freyacodes/lavaplayer@97424f0
+            .put("sourceName", audioTrack.getSourceManager() == null ? null : audioTrack.getSourceManager().getSourceName());
+    }
+
+    private JSONObject encodeLoadResult(LoadResult result) {
+        JSONObject json = new JSONObject();
+        JSONObject playlist = new JSONObject();
+        JSONArray tracks = new JSONArray();
+
+        result.tracks.forEach(track -> {
+            JSONObject object = new JSONObject();
+            object.put("info", trackToJSON(track));
+
+            try {
+                String encoded = Util.encodeAudioTrack(audioPlayerManager, track);
+                object.put("track", encoded);
+                tracks.put(object);
+            } catch (IOException e) {
+                log.warn("Failed to encode a track {}, skipping", track.getIdentifier(), e);
+            }
+        });
+
+        playlist.put("name", result.playlistName);
+        playlist.put("selectedTrack", result.selectedTrack);
+
+        json.put("playlistInfo", playlist);
+        json.put("loadType", result.loadResultType);
+        json.put("tracks", tracks);
+
+        if (result.loadResultType == ResultStatus.LOAD_FAILED && result.exception != null) {
+            JSONObject exception = new JSONObject();
+            exception.put("message", result.exception.getLocalizedMessage());
+            exception.put("severity", result.exception.severity.toString());
+
+            json.put("exception", exception);
+            log.error("Track loading failed", result.exception);
+        }
+
+        return json;
+    }
+
+    @GetMapping(value = "/loadtracks", produces = "application/json")
+    @ResponseBody
+    public CompletionStage<ResponseEntity<String>> getLoadTracks(
+        @RequestParam String identifier) {
+        log.info("Got request to load for identifier \"{}\"", identifier);
+
+        return new AudioLoader(audioPlayerManager).load(identifier)
+            .thenApply(this::encodeLoadResult)
+            .thenApply(loadResultJson -> new ResponseEntity<>(loadResultJson.toString(), HttpStatus.OK));
+    }
+
+    @GetMapping(value = "/decodetrack", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<String> getDecodeTrack(HttpServletRequest request, @RequestParam String track)
+        throws IOException {
+
+        log(request);
+
+        AudioTrack audioTrack = Util.decodeAudioTrack(audioPlayerManager, track);
+
+        return new ResponseEntity<>(trackToJSON(audioTrack).toString(), HttpStatus.OK);
+    }
+
+    @PostMapping(value = "/decodetracks", consumes = "application/json", produces = "application/json")
+    @ResponseBody
+    public ResponseEntity<String> postDecodeTracks(HttpServletRequest request, @RequestBody String body)
+        throws IOException {
+
+        log(request);
+
+        JSONArray requestJSON = new JSONArray(body);
+        JSONArray responseJSON = new JSONArray();
+
+        for (int i = 0; i < requestJSON.length(); i++) {
+            String track = requestJSON.getString(i);
+            AudioTrack audioTrack = Util.decodeAudioTrack(audioPlayerManager, track);
+
+            JSONObject infoJSON = trackToJSON(audioTrack);
+            JSONObject trackJSON = new JSONObject()
+                .put("track", track)
+                .put("info", infoJSON);
+
+            responseJSON.put(trackJSON);
+        }
+
+        return new ResponseEntity<>(responseJSON.toString(), HttpStatus.OK);
+    }
 }

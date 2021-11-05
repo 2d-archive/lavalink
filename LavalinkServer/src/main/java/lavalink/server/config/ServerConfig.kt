@@ -29,8 +29,8 @@ import org.springframework.stereotype.Component
 @ConfigurationProperties(prefix = "lavalink.server")
 @Component
 class ServerConfig {
-  @get:Deprecated("use {@link SentryConfigProperties} instead.")
-  var sentryDsn = ""
-  var playerUpdateInterval: Int = 5
-  var password: String? = ""
+    @get:Deprecated("use {@link SentryConfigProperties} instead.")
+    var sentryDsn = ""
+    var playerUpdateInterval: Int = 5
+    var password: String? = ""
 }

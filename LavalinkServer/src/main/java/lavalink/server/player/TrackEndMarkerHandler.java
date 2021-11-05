@@ -28,15 +28,16 @@ import com.sedmelluq.discord.lavaplayer.track.TrackMarkerHandler;
 
 public class TrackEndMarkerHandler implements TrackMarkerHandler {
 
-  private final Player player;
+    private final Player player;
 
-  public TrackEndMarkerHandler(Player player) {
-    this.player = player;
-  }
+    public TrackEndMarkerHandler(Player player) {
+        this.player = player;
+    }
 
-  @Override
-  public void handle(MarkerState state) {
-    if (state.equals(MarkerState.REACHED) | state.equals(MarkerState.BYPASSED))
-      player.stop();
-  }
+    @Override
+    public void handle(MarkerState state) {
+        if (state.equals(MarkerState.REACHED) | state.equals(MarkerState.BYPASSED)) {
+            player.stop();
+        }
+    }
 }

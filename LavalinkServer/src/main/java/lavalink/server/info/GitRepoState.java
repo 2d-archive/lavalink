@@ -42,84 +42,84 @@ import java.util.Properties;
 @Component
 public class GitRepoState {
 
-  private static final Logger log = LoggerFactory.getLogger(GitRepoState.class);
-  private final String branch;
-  private final String commitId;
-  private final String commitIdAbbrev;
-  private final String commitUserName;
-  private final String commitUserEmail;
-  private final String commitMessageFull;
-  private final String commitMessageShort;
-  private final long commitTime; //epoch seconds
-  private boolean loaded = false;
+    private static final Logger log = LoggerFactory.getLogger(GitRepoState.class);
+    private final String branch;
+    private final String commitId;
+    private final String commitIdAbbrev;
+    private final String commitUserName;
+    private final String commitUserEmail;
+    private final String commitMessageFull;
+    private final String commitMessageShort;
+    private final long commitTime; //epoch seconds
+    private boolean loaded = false;
 
-  @SuppressWarnings("ConstantConditions")
-  public GitRepoState() {
+    @SuppressWarnings("ConstantConditions")
+    public GitRepoState() {
 
-    Properties properties = new Properties();
-    try {
-      properties.load(GitRepoState.class.getClassLoader().getResourceAsStream("git.properties"));
-      loaded = true;
-    } catch (NullPointerException e) {
-      log.trace("Failed to load git repo information. Did you build with the git gradle plugin? Is the git.properties file present?");
-    } catch (IOException e) {
-      log.info("Failed to load git repo information due to suspicious IOException", e);
+        Properties properties = new Properties();
+        try {
+            properties.load(GitRepoState.class.getClassLoader().getResourceAsStream("git.properties"));
+            loaded = true;
+        } catch (NullPointerException e) {
+            log.trace("Failed to load git repo information. Did you build with the git gradle plugin? Is the git.properties file present?");
+        } catch (IOException e) {
+            log.info("Failed to load git repo information due to suspicious IOException", e);
+        }
+
+        this.branch = String.valueOf(properties.getOrDefault("git.branch", ""));
+        this.commitId = String.valueOf(properties.getOrDefault("git.commit.id", ""));
+        this.commitIdAbbrev = String.valueOf(properties.getOrDefault("git.commit.id.abbrev", ""));
+        this.commitUserName = String.valueOf(properties.getOrDefault("git.commit.user.name", ""));
+        this.commitUserEmail = String.valueOf(properties.getOrDefault("git.commit.user.email", ""));
+        this.commitMessageFull = String.valueOf(properties.getOrDefault("git.commit.message.full", ""));
+        this.commitMessageShort = String.valueOf(properties.getOrDefault("git.commit.message.short", ""));
+        final String time = String.valueOf(properties.get("git.commit.time"));
+        if (time == null || time.equals("null")) {
+            this.commitTime = 0;
+        } else {
+            // https://github.com/n0mer/gradle-git-properties/issues/71
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ");
+            this.commitTime = OffsetDateTime.from(dtf.parse(time)).toEpochSecond();
+        }
     }
 
-    this.branch = String.valueOf(properties.getOrDefault("git.branch", ""));
-    this.commitId = String.valueOf(properties.getOrDefault("git.commit.id", ""));
-    this.commitIdAbbrev = String.valueOf(properties.getOrDefault("git.commit.id.abbrev", ""));
-    this.commitUserName = String.valueOf(properties.getOrDefault("git.commit.user.name", ""));
-    this.commitUserEmail = String.valueOf(properties.getOrDefault("git.commit.user.email", ""));
-    this.commitMessageFull = String.valueOf(properties.getOrDefault("git.commit.message.full", ""));
-    this.commitMessageShort = String.valueOf(properties.getOrDefault("git.commit.message.short", ""));
-    final String time = String.valueOf(properties.get("git.commit.time"));
-    if (time == null || time.equals("null")) {
-      this.commitTime = 0;
-    } else {
-      // https://github.com/n0mer/gradle-git-properties/issues/71
-      DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ssZ");
-      this.commitTime = OffsetDateTime.from(dtf.parse(time)).toEpochSecond();
+    public String getBranch() {
+        return this.branch;
     }
-  }
 
-  public String getBranch() {
-    return this.branch;
-  }
+    public String getCommitId() {
+        return this.commitId;
+    }
 
-  public String getCommitId() {
-    return this.commitId;
-  }
+    public String getCommitIdAbbrev() {
+        return this.commitIdAbbrev;
+    }
 
-  public String getCommitIdAbbrev() {
-    return this.commitIdAbbrev;
-  }
+    public String getCommitUserName() {
+        return this.commitUserName;
+    }
 
-  public String getCommitUserName() {
-    return this.commitUserName;
-  }
+    public String getCommitUserEmail() {
+        return this.commitUserEmail;
+    }
 
-  public String getCommitUserEmail() {
-    return this.commitUserEmail;
-  }
+    public String getCommitMessageFull() {
+        return this.commitMessageFull;
+    }
 
-  public String getCommitMessageFull() {
-    return this.commitMessageFull;
-  }
+    public String getCommitMessageShort() {
+        return this.commitMessageShort;
+    }
 
-  public String getCommitMessageShort() {
-    return this.commitMessageShort;
-  }
+    /**
+     * @return commit time in epoch seconds
+     */
+    public long getCommitTime() {
+        return this.commitTime;
+    }
 
-  /**
-   * @return commit time in epoch seconds
-   */
-  public long getCommitTime() {
-    return this.commitTime;
-  }
-
-  public boolean isLoaded() {
-    return loaded;
-  }
+    public boolean isLoaded() {
+        return loaded;
+    }
 }
 

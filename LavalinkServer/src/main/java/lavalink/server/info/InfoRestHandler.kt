@@ -21,10 +21,10 @@
  *
  */
 
-package lavalink.server.info;
+package lavalink.server.info
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.RestController
 
 /**
  * Created by napster on 08.03.19.
@@ -32,8 +32,8 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @RestController
 class InfoRestHandler(private val appInfo: AppInfo) {
-  @GetMapping("/version")
-  fun version(): String {
-    return appInfo.versionBuild;
-  }
+    @GetMapping("/version")
+    fun version(): String {
+        return appInfo.versionBuild
+    }
 }

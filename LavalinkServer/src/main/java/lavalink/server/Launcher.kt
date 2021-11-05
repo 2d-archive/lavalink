@@ -43,89 +43,89 @@ class LavalinkApplication
 
 object Launcher {
 
-  private val log = LoggerFactory.getLogger(Launcher::class.java)
+    private val log = LoggerFactory.getLogger(Launcher::class.java)
 
-  val startTime = System.currentTimeMillis()
+    val startTime = System.currentTimeMillis()
 
-  private fun getVersionInfo(indentation: String = "\t", vanity: Boolean = true): String {
-    val appInfo = AppInfo()
-    val gitRepoState = GitRepoState()
+    private fun getVersionInfo(indentation: String = "\t", vanity: Boolean = true): String {
+        val appInfo = AppInfo()
+        val gitRepoState = GitRepoState()
 
-    val dtf = DateTimeFormatter
-      .ofPattern("dd.MM.yyyy HH:mm:ss z")
-      .withZone(ZoneId.of("UTC"))
+        val dtf = DateTimeFormatter
+            .ofPattern("dd.MM.yyyy HH:mm:ss z")
+            .withZone(ZoneId.of("UTC"))
 
-    val buildTime = dtf.format(Instant.ofEpochMilli(appInfo.buildTime))
-    val commitTime = dtf.format(Instant.ofEpochMilli(gitRepoState.commitTime * 1000))
+        val buildTime = dtf.format(Instant.ofEpochMilli(appInfo.buildTime))
+        val commitTime = dtf.format(Instant.ofEpochMilli(gitRepoState.commitTime * 1000))
 
-    val version = appInfo.version.takeUnless { it.startsWith("@") } ?: "Unknown"
-    val buildNumber = appInfo.buildNumber.takeUnless { it.startsWith("@") } ?: "Unofficial"
+        val version = appInfo.version.takeUnless { it.startsWith("@") } ?: "Unknown"
+        val buildNumber = appInfo.buildNumber.takeUnless { it.startsWith("@") } ?: "Unofficial"
 
-    return buildString {
-      if (vanity) {
-        appendLine()
-        appendLine()
-        appendLine(getVanity())
-      }
+        return buildString {
+            if (vanity) {
+                appendLine()
+                appendLine()
+                appendLine(getVanity())
+            }
 
-      if (!gitRepoState.isLoaded) {
-        appendLine()
-        appendLine("$indentation*** Unable to find or load Git metadata ***")
-      }
+            if (!gitRepoState.isLoaded) {
+                appendLine()
+                appendLine("$indentation*** Unable to find or load Git metadata ***")
+            }
 
-      appendLine()
-      append("${indentation}Version:        "); appendLine(version)
-      append("${indentation}Build:          "); appendLine(buildNumber)
-      if (gitRepoState.isLoaded) {
-        append("${indentation}Build time:     "); appendLine(buildTime)
-        append("${indentation}Branch          "); appendLine(gitRepoState.branch)
-        append("${indentation}Commit:         "); appendLine(gitRepoState.commitIdAbbrev)
-        append("${indentation}Commit time:    "); appendLine(commitTime)
-      }
+            appendLine()
+            append("${indentation}Version:        "); appendLine(version)
+            append("${indentation}Build:          "); appendLine(buildNumber)
+            if (gitRepoState.isLoaded) {
+                append("${indentation}Build time:     "); appendLine(buildTime)
+                append("${indentation}Branch          "); appendLine(gitRepoState.branch)
+                append("${indentation}Commit:         "); appendLine(gitRepoState.commitIdAbbrev)
+                append("${indentation}Commit time:    "); appendLine(commitTime)
+            }
 
-      append("${indentation}JVM:            "); appendLine(System.getProperty("java.version"))
-      append("${indentation}Lavaplayer      "); appendLine(PlayerLibrary.VERSION)
-    }
-  }
-
-  private fun getVanity(): String {
-    //ansi color codes
-    val red = "[31m"
-    val green = "[32m"
-    val defaultC = "[0m"
-
-    var vanity = ("g       .  r _                  _ _       _    g__ _ _\n"
-      + "g      /\\\\ r| | __ ___   ____ _| (_)_ __ | | __g\\ \\ \\ \\\n"
-      + "g     ( ( )r| |/ _` \\ \\ / / _` | | | '_ \\| |/ /g \\ \\ \\ \\\n"
-      + "g      \\\\/ r| | (_| |\\ V / (_| | | | | | |   < g  ) ) ) )\n"
-      + "g       '  r|_|\\__,_| \\_/ \\__,_|_|_|_| |_|_|\\_\\g / / / /\n"
-      + "d    =========================================g/_/_/_/d")
-
-    vanity = vanity.replace("r".toRegex(), red)
-    vanity = vanity.replace("g".toRegex(), green)
-    vanity = vanity.replace("d".toRegex(), defaultC)
-    return vanity
-  }
-
-  @JvmStatic
-  fun main(args: Array<String>) {
-    when (args.firstOrNull()?.lowercase()) {
-      "-v", "--version" -> return println(getVersionInfo(indentation = "", vanity = false))
-    }
-
-    /* start the spring application */
-    val sa = SpringApplication(LavalinkApplication::class.java)
-    sa.webApplicationType = WebApplicationType.SERVLET
-    sa.setBannerMode(Banner.Mode.OFF) // We have our own
-    sa.addListeners(
-      ApplicationListener { event: Any ->
-        when (event) {
-          is ApplicationEnvironmentPreparedEvent -> log.info(getVersionInfo())
-          is ApplicationFailedEvent -> log.error("Application failed", event.exception)
+            append("${indentation}JVM:            "); appendLine(System.getProperty("java.version"))
+            append("${indentation}Lavaplayer      "); appendLine(PlayerLibrary.VERSION)
         }
-      }
-    )
+    }
 
-    sa.run(*args)
-  }
+    private fun getVanity(): String {
+        //ansi color codes
+        val red = "[31m"
+        val green = "[32m"
+        val defaultC = "[0m"
+
+        var vanity = ("g       .  r _                  _ _       _    g__ _ _\n"
+            + "g      /\\\\ r| | __ ___   ____ _| (_)_ __ | | __g\\ \\ \\ \\\n"
+            + "g     ( ( )r| |/ _` \\ \\ / / _` | | | '_ \\| |/ /g \\ \\ \\ \\\n"
+            + "g      \\\\/ r| | (_| |\\ V / (_| | | | | | |   < g  ) ) ) )\n"
+            + "g       '  r|_|\\__,_| \\_/ \\__,_|_|_|_| |_|_|\\_\\g / / / /\n"
+            + "d    =========================================g/_/_/_/d")
+
+        vanity = vanity.replace("r".toRegex(), red)
+        vanity = vanity.replace("g".toRegex(), green)
+        vanity = vanity.replace("d".toRegex(), defaultC)
+        return vanity
+    }
+
+    @JvmStatic
+    fun main(args: Array<String>) {
+        when (args.firstOrNull()?.lowercase()) {
+            "-v", "--version" -> return println(getVersionInfo(indentation = "", vanity = false))
+        }
+
+        /* start the spring application */
+        val sa = SpringApplication(LavalinkApplication::class.java)
+        sa.webApplicationType = WebApplicationType.SERVLET
+        sa.setBannerMode(Banner.Mode.OFF) // We have our own
+        sa.addListeners(
+            ApplicationListener { event: Any ->
+                when (event) {
+                    is ApplicationEnvironmentPreparedEvent -> log.info(getVersionInfo())
+                    is ApplicationFailedEvent -> log.error("Application failed", event.exception)
+                }
+            }
+        )
+
+        sa.run(*args)
+    }
 }

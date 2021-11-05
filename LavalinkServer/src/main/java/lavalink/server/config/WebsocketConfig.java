@@ -35,18 +35,18 @@ import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry
 @EnableWebSocket
 public class WebsocketConfig implements WebSocketConfigurer {
 
-  private final SocketServer server;
-  private final HandshakeInterceptorImpl handshakeInterceptor;
+    private final SocketServer server;
+    private final HandshakeInterceptorImpl handshakeInterceptor;
 
-  @Autowired
-  public WebsocketConfig(SocketServer server, HandshakeInterceptorImpl handshakeInterceptor) {
-    this.server = server;
-    this.handshakeInterceptor = handshakeInterceptor;
-  }
+    @Autowired
+    public WebsocketConfig(SocketServer server, HandshakeInterceptorImpl handshakeInterceptor) {
+        this.server = server;
+        this.handshakeInterceptor = handshakeInterceptor;
+    }
 
-  @Override
-  public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-    registry.addHandler(server, "/")
-      .addInterceptors(handshakeInterceptor);
-  }
+    @Override
+    public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+        registry.addHandler(server, "/")
+            .addInterceptors(handshakeInterceptor);
+    }
 }

@@ -31,27 +31,29 @@ import java.util.Collections;
 import java.util.List;
 
 class LoadResult {
-  public ResultStatus loadResultType;
-  public List<AudioTrack> tracks;
-  public @Nullable String playlistName;
-  public @Nullable Integer selectedTrack;
-  public FriendlyException exception;
+    public ResultStatus loadResultType;
+    public List<AudioTrack> tracks;
+    public @Nullable
+    String playlistName;
+    public @Nullable
+    Integer selectedTrack;
+    public FriendlyException exception;
 
-  public LoadResult(ResultStatus loadResultType, List<AudioTrack> tracks,
-                    @Nullable String playlistName, @Nullable Integer selectedTrack) {
+    public LoadResult(ResultStatus loadResultType, List<AudioTrack> tracks,
+                      @Nullable String playlistName, @Nullable Integer selectedTrack) {
 
-    this.loadResultType = loadResultType;
-    this.tracks = Collections.unmodifiableList(tracks);
-    this.playlistName = playlistName;
-    this.selectedTrack = selectedTrack;
-    this.exception = null;
-  }
+        this.loadResultType = loadResultType;
+        this.tracks = Collections.unmodifiableList(tracks);
+        this.playlistName = playlistName;
+        this.selectedTrack = selectedTrack;
+        this.exception = null;
+    }
 
-  public LoadResult(FriendlyException exception) {
-    this.loadResultType = ResultStatus.LOAD_FAILED;
-    this.tracks = Collections.emptyList();
-    this.playlistName = null;
-    this.selectedTrack = null;
-    this.exception = exception;
-  }
+    public LoadResult(FriendlyException exception) {
+        this.loadResultType = ResultStatus.LOAD_FAILED;
+        this.tracks = Collections.emptyList();
+        this.playlistName = null;
+        this.selectedTrack = null;
+        this.exception = exception;
+    }
 }

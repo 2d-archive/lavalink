@@ -34,58 +34,58 @@ import javax.servlet.http.HttpServletResponse
 
 @Configuration
 class RequestAuthorizationFilter(
-  private val serverConfig: ServerConfig,
-  private val metricsConfig: MetricsPrometheusConfigProperties
+    private val serverConfig: ServerConfig,
+    private val metricsConfig: MetricsPrometheusConfigProperties
 ) : HandlerInterceptor, WebMvcConfigurer {
 
-  companion object {
-    private val log = LoggerFactory.getLogger(RequestAuthorizationFilter::class.java)
-  }
-
-  init {
-    if (serverConfig.password.isNullOrBlank()) {
-      log.warn("No configured password, this is a possible security risk.")
+    companion object {
+        private val log = LoggerFactory.getLogger(RequestAuthorizationFilter::class.java)
     }
-  }
 
-  override fun preHandle(request: HttpServletRequest, response: HttpServletResponse, handler: Any): Boolean {
-    return when {
-      // collecting metrics is anonymous
-      metricsConfig.endpoint.isNotBlank() && request.servletPath == metricsConfig.endpoint ->
-        true
-
-      request.servletPath == "/error" ->
-        true
-
-      serverConfig.password.isNullOrBlank() ->
-        true
-
-      else -> {
-        val authorization = request.getHeader("Authorization")
-        if (authorization?.takeIf { it == serverConfig.password } == null) {
-          /* check if the authorization is missing or just incorrect. */
-          val missing = authorization == null
-
-          /* log the failed request heheh */
-          log.warn(buildString {
-            append("Authorization ${if (missing) "missing" else "failed"} for ${request.remoteAddr} on ${request.method}")
-            append(" ")
-            append(request.requestURI.substring(request.contextPath.length))
-          })
-
-          /* set the response status */
-          response.status = (if (missing) HttpStatus.UNAUTHORIZED else HttpStatus.FORBIDDEN).value()
-
-          /* yessir */
-          return false
+    init {
+        if (serverConfig.password.isNullOrBlank()) {
+            log.warn("No configured password, this is a possible security risk.")
         }
-
-        return true
-      }
     }
-  }
 
-  override fun addInterceptors(registry: InterceptorRegistry) {
-    registry.addInterceptor(this)
-  }
+    override fun preHandle(request: HttpServletRequest, response: HttpServletResponse, handler: Any): Boolean {
+        return when {
+            // collecting metrics is anonymous
+            metricsConfig.endpoint.isNotBlank() && request.servletPath == metricsConfig.endpoint ->
+                true
+
+            request.servletPath == "/error" ->
+                true
+
+            serverConfig.password.isNullOrBlank() ->
+                true
+
+            else -> {
+                val authorization = request.getHeader("Authorization")
+                if (authorization?.takeIf { it == serverConfig.password } == null) {
+                    /* check if the authorization is missing or just incorrect. */
+                    val missing = authorization == null
+
+                    /* log the failed request heheh */
+                    log.warn(buildString {
+                        append("Authorization ${if (missing) "missing" else "failed"} for ${request.remoteAddr} on ${request.method}")
+                        append(" ")
+                        append(request.requestURI.substring(request.contextPath.length))
+                    })
+
+                    /* set the response status */
+                    response.status = (if (missing) HttpStatus.UNAUTHORIZED else HttpStatus.FORBIDDEN).value()
+
+                    /* yessir */
+                    return false
+                }
+
+                return true
+            }
+        }
+    }
+
+    override fun addInterceptors(registry: InterceptorRegistry) {
+        registry.addInterceptor(this)
+    }
 }

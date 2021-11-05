@@ -52,34 +52,34 @@ import java.util.Set;
 @ConditionalOnBean(PrometheusMetrics.class)
 public class PrometheusMetricsController {
 
-  private final CollectorRegistry registry;
+    private final CollectorRegistry registry;
 
-  public PrometheusMetricsController() {
-    this.registry = CollectorRegistry.defaultRegistry;
-  }
-
-  @GetMapping(produces = TextFormat.CONTENT_TYPE_004)
-  public ResponseEntity<String> getMetrics(@Nullable @RequestParam(name = "name[]", required = false) String[] includedParam)
-    throws IOException {
-    return buildAnswer(includedParam);
-  }
-
-  private ResponseEntity<String> buildAnswer(@Nullable String[] includedParam) throws IOException {
-    Set<String> params;
-    if (includedParam == null) {
-      params = Collections.emptySet();
-    } else {
-      params = new HashSet<>(Arrays.asList(includedParam));
+    public PrometheusMetricsController() {
+        this.registry = CollectorRegistry.defaultRegistry;
     }
 
-    Writer writer = new StringWriter();
-    try {
-      TextFormat.write004(writer, this.registry.filteredMetricFamilySamples(params));
-      writer.flush();
-    } finally {
-      writer.close();
+    @GetMapping(produces = TextFormat.CONTENT_TYPE_004)
+    public ResponseEntity<String> getMetrics(@Nullable @RequestParam(name = "name[]", required = false) String[] includedParam)
+        throws IOException {
+        return buildAnswer(includedParam);
     }
 
-    return new ResponseEntity<>(writer.toString(), HttpStatus.OK);
-  }
+    private ResponseEntity<String> buildAnswer(@Nullable String[] includedParam) throws IOException {
+        Set<String> params;
+        if (includedParam == null) {
+            params = Collections.emptySet();
+        } else {
+            params = new HashSet<>(Arrays.asList(includedParam));
+        }
+
+        Writer writer = new StringWriter();
+        try {
+            TextFormat.write004(writer, this.registry.filteredMetricFamilySamples(params));
+            writer.flush();
+        } finally {
+            writer.close();
+        }
+
+        return new ResponseEntity<>(writer.toString(), HttpStatus.OK);
+    }
 }

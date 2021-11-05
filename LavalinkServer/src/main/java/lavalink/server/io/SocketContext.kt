@@ -42,155 +42,155 @@ import java.util.*
 import java.util.concurrent.*
 
 class SocketContext internal constructor(
-  val audioPlayerManager: AudioPlayerManager,
-  val serverConfig: ServerConfig,
-  private var session: WebSocketSession,
-  private val socketServer: SocketServer,
-  val userId: String,
-  private val koe: KoeClient
+    val audioPlayerManager: AudioPlayerManager,
+    val serverConfig: ServerConfig,
+    private var session: WebSocketSession,
+    private val socketServer: SocketServer,
+    val userId: String,
+    private val koe: KoeClient
 ) {
 
-  companion object {
-    private val log = LoggerFactory.getLogger(SocketContext::class.java)
-  }
-
-  //guildId <-> Player
-  val players = ConcurrentHashMap<String, Player>()
-
-  @Volatile
-  var sessionPaused = false
-  private val resumeEventQueue = ConcurrentLinkedQueue<String>()
-
-  /** Null means disabled. See implementation notes */
-  var resumeKey: String? = null
-  var resumeTimeout = 60L // Seconds
-  private var sessionTimeoutFuture: ScheduledFuture<Unit>? = null
-  private val executor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
-  val playerUpdateService: ScheduledExecutorService
-
-  val playingPlayers: List<Player>
-    get() {
-      val newList = LinkedList<Player>()
-      players.values.forEach { player -> if (player.isPlaying) newList.add(player) }
-      return newList
+    companion object {
+        private val log = LoggerFactory.getLogger(SocketContext::class.java)
     }
 
+    //guildId <-> Player
+    val players = ConcurrentHashMap<String, Player>()
 
-  init {
-    executor.scheduleAtFixedRate(StatsTask(this, socketServer), 0, 1, TimeUnit.MINUTES)
+    @Volatile
+    var sessionPaused = false
+    private val resumeEventQueue = ConcurrentLinkedQueue<String>()
 
-    playerUpdateService = Executors.newScheduledThreadPool(2) { r ->
-      val thread = Thread(r)
-      thread.name = "player-update"
-      thread.isDaemon = true
-      thread
-    }
-  }
+    /** Null means disabled. See implementation notes */
+    var resumeKey: String? = null
+    var resumeTimeout = 60L // Seconds
+    private var sessionTimeoutFuture: ScheduledFuture<Unit>? = null
+    private val executor: ScheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
+    val playerUpdateService: ScheduledExecutorService
 
-  internal fun getPlayer(guildId: Long) =
-    getPlayer(guildId.toString())
-
-  internal fun getPlayer(guildId: String) =
-    players.computeIfAbsent(guildId) {
-      Player(this, guildId, audioPlayerManager, serverConfig)
-    }
-
-  /**
-   * Gets or creates a voice connection
-   */
-  fun getMediaConnection(player: Player): MediaConnection {
-    val guildId = player.guildId.toLong()
-    var conn = koe.getConnection(guildId)
-    if (conn == null) {
-      conn = koe.createConnection(guildId)
-      conn.registerListener(EventHandler(player))
-    }
-
-    return conn
-  }
-
-  /**
-   * Disposes of a voice connection
-   */
-  fun destroy(guild: Long) {
-    players.remove(guild.toString())?.stop()
-    koe.destroyConnection(guild)
-  }
-
-  fun pause() {
-    sessionPaused = true
-    sessionTimeoutFuture = executor.schedule<Unit>({
-      socketServer.onSessionResumeTimeout(this)
-    }, resumeTimeout, TimeUnit.SECONDS)
-  }
-
-  /**
-   * Either sends the payload now or queues it up
-   */
-  fun send(payload: JSONObject) = send(payload.toString())
-
-  private fun send(payload: String) {
-    if (sessionPaused) {
-      resumeEventQueue.add(payload)
-      return
-    }
-
-    if (!session.isOpen) return
-
-    val undertowSession = (session as StandardWebSocketSession).nativeSession as UndertowSession
-    WebSockets.sendText(payload, undertowSession.webSocketChannel,
-      object : WebSocketCallback<Void> {
-        override fun complete(channel: WebSocketChannel, context: Void?) {
-          log.trace("Sent {}", payload)
+    val playingPlayers: List<Player>
+        get() {
+            val newList = LinkedList<Player>()
+            players.values.forEach { player -> if (player.isPlaying) newList.add(player) }
+            return newList
         }
 
-        override fun onError(channel: WebSocketChannel, context: Void?, throwable: Throwable) {
-          log.error("Error", throwable)
+
+    init {
+        executor.scheduleAtFixedRate(StatsTask(this, socketServer), 0, 1, TimeUnit.MINUTES)
+
+        playerUpdateService = Executors.newScheduledThreadPool(2) { r ->
+            val thread = Thread(r)
+            thread.name = "player-update"
+            thread.isDaemon = true
+            thread
         }
-      })
-  }
-
-  /**
-   * @return true if we can resume, false otherwise
-   */
-  fun stopResumeTimeout() = sessionTimeoutFuture?.cancel(false) ?: false
-
-  fun resume(session: WebSocketSession) {
-    sessionPaused = false
-    this.session = session
-    log.info("Replaying ${resumeEventQueue.size} events")
-
-    // Bulk actions are not guaranteed to be atomic, so we need to do this imperatively
-    while (resumeEventQueue.isNotEmpty()) {
-      send(resumeEventQueue.remove())
     }
 
-    players.values.forEach { SocketServer.sendPlayerUpdate(this, it) }
-  }
+    internal fun getPlayer(guildId: Long) =
+        getPlayer(guildId.toString())
 
-  internal fun shutdown() {
-    log.info("Shutting down " + playingPlayers.size + " playing players.")
-    executor.shutdown()
-    playerUpdateService.shutdown()
-    players.values.forEach(Player::stop)
-    koe.close()
-  }
+    internal fun getPlayer(guildId: String) =
+        players.computeIfAbsent(guildId) {
+            Player(this, guildId, audioPlayerManager, serverConfig)
+        }
 
-  private inner class EventHandler(private val player: Player) : KoeEventAdapter() {
-    override fun gatewayClosed(code: Int, reason: String?, byRemote: Boolean) {
-      val out = JSONObject()
-      out.put("op", "event")
-      out.put("type", "WebSocketClosedEvent")
-      out.put("guildId", player.guildId)
-      out.put("reason", reason ?: "")
-      out.put("code", code)
-      out.put("byRemote", byRemote)
+    /**
+     * Gets or creates a voice connection
+     */
+    fun getMediaConnection(player: Player): MediaConnection {
+        val guildId = player.guildId.toLong()
+        var conn = koe.getConnection(guildId)
+        if (conn == null) {
+            conn = koe.createConnection(guildId)
+            conn.registerListener(EventHandler(player))
+        }
 
-      send(out)
+        return conn
     }
 
-    override fun gatewayReady(target: InetSocketAddress?, ssrc: Int) {
-      SocketServer.sendPlayerUpdate(this@SocketContext, player)
+    /**
+     * Disposes of a voice connection
+     */
+    fun destroy(guild: Long) {
+        players.remove(guild.toString())?.stop()
+        koe.destroyConnection(guild)
     }
-  }
+
+    fun pause() {
+        sessionPaused = true
+        sessionTimeoutFuture = executor.schedule<Unit>({
+            socketServer.onSessionResumeTimeout(this)
+        }, resumeTimeout, TimeUnit.SECONDS)
+    }
+
+    /**
+     * Either sends the payload now or queues it up
+     */
+    fun send(payload: JSONObject) = send(payload.toString())
+
+    private fun send(payload: String) {
+        if (sessionPaused) {
+            resumeEventQueue.add(payload)
+            return
+        }
+
+        if (!session.isOpen) return
+
+        val undertowSession = (session as StandardWebSocketSession).nativeSession as UndertowSession
+        WebSockets.sendText(payload, undertowSession.webSocketChannel,
+            object : WebSocketCallback<Void> {
+                override fun complete(channel: WebSocketChannel, context: Void?) {
+                    log.trace("Sent {}", payload)
+                }
+
+                override fun onError(channel: WebSocketChannel, context: Void?, throwable: Throwable) {
+                    log.error("Error", throwable)
+                }
+            })
+    }
+
+    /**
+     * @return true if we can resume, false otherwise
+     */
+    fun stopResumeTimeout() = sessionTimeoutFuture?.cancel(false) ?: false
+
+    fun resume(session: WebSocketSession) {
+        sessionPaused = false
+        this.session = session
+        log.info("Replaying ${resumeEventQueue.size} events")
+
+        // Bulk actions are not guaranteed to be atomic, so we need to do this imperatively
+        while (resumeEventQueue.isNotEmpty()) {
+            send(resumeEventQueue.remove())
+        }
+
+        players.values.forEach { SocketServer.sendPlayerUpdate(this, it) }
+    }
+
+    internal fun shutdown() {
+        log.info("Shutting down " + playingPlayers.size + " playing players.")
+        executor.shutdown()
+        playerUpdateService.shutdown()
+        players.values.forEach(Player::stop)
+        koe.close()
+    }
+
+    private inner class EventHandler(private val player: Player) : KoeEventAdapter() {
+        override fun gatewayClosed(code: Int, reason: String?, byRemote: Boolean) {
+            val out = JSONObject()
+            out.put("op", "event")
+            out.put("type", "WebSocketClosedEvent")
+            out.put("guildId", player.guildId)
+            out.put("reason", reason ?: "")
+            out.put("code", code)
+            out.put("byRemote", byRemote)
+
+            send(out)
+        }
+
+        override fun gatewayReady(target: InetSocketAddress?, ssrc: Int) {
+            SocketServer.sendPlayerUpdate(this@SocketContext, player)
+        }
+    }
 }
